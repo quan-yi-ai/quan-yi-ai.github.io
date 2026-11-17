@@ -10,8 +10,7 @@ export default defineConfig({
     nav: [
       { text: '首页', link: '/' },
       { text: '文章', link: '/posts/' },
-      { text: '关于', link: '/about' },
-      { text: 'GitHub', link: 'https://github.com/quan-yi-ai' }
+      { text: '关于', link: '/about' }
     ],
     sidebar: {
       '/posts/': [
@@ -24,7 +23,6 @@ export default defineConfig({
         ] }
       ]
     },
-    socialLinks: [{ icon: 'github', link: 'https://github.com/quan-yi-ai' }],
     search: { provider: 'local' },
     footer: { message: 'Built with VitePress', copyright: 'AI Systems & Beyond' }
   }
