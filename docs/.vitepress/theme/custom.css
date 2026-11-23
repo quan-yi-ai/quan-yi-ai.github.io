@@ -84,58 +84,67 @@ html { scroll-behavior:smooth; }
   .asb-button,.asb-topic,.asb-article { transition:none!important; }
 }
 
-/* Champagne-gold four-point starburst. No circles, no overlay blocking clicks. */
-.asb-starburst {
+/* Confetti pop: colorful tiny paper scraps; never captures pointer input. */
+.asb-confetti-burst {
   position: fixed;
   left: 0;
   top: 0;
-  z-index: 2147483000;
   width: 0;
   height: 0;
-  pointer-events: none;
   overflow: visible;
+  pointer-events: none;
+  z-index: 2147483000;
   contain: layout style;
 }
-.asb-starburst-star,
-.asb-starburst-center {
+.asb-confetti-piece {
   position: absolute;
   left: 0;
   top: 0;
-  overflow: visible;
-  pointer-events: none;
-  fill: #e5c38b;
-  filter: drop-shadow(0 0 2.5px rgba(222,180,108,.25));
-  transform-origin: center;
-}
-.asb-starburst-star {
-  width: var(--star-size);
-  height: var(--star-size);
-  margin-left: calc(var(--star-size) / -2);
-  margin-top: calc(var(--star-size) / -2);
+  display: block;
+  width: var(--width);
+  height: var(--height);
+  margin-left: calc(var(--width) / -2);
+  margin-top: calc(var(--height) / -2);
+  border-radius: 1px;
+  background: var(--piece-color);
   opacity: 0;
-  animation: asb-champagne-bloom 670ms cubic-bezier(.16,.72,.25,1) var(--delay) both;
+  transform-origin: center;
+  animation: asb-confetti-fly 740ms cubic-bezier(.12,.68,.32,1) var(--delay) both;
 }
-.asb-starburst-center {
-  width: 10px;
-  height: 10px;
-  margin-left: -5px;
-  margin-top: -5px;
-  animation: asb-champagne-center 760ms ease-out both;
+.asb-confetti-dot {
+  width: 5px;
+  height: 5px;
+  margin-left: -2.5px;
+  margin-top: -2.5px;
+  border-radius: 50%;
 }
-@keyframes asb-champagne-bloom {
-  0% { opacity: 0; transform: translate(0,0) rotate(0deg) scale(.32); }
-  12% { opacity: .95; }
-  48% { opacity: .82; }
-  100% { opacity: 0; transform: translate(var(--dx),var(--dy)) rotate(var(--turn)) scale(.64); }
+.asb-confetti-diamond { border-radius: 0; }
+.asb-confetti-center {
+  position: absolute;
+  left: -4px;
+  top: -4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ffe8a2;
+  box-shadow: 0 0 9px 2px rgba(255,225,164,.56);
+  animation: asb-confetti-flash 860ms ease-out both;
 }
-@keyframes asb-champagne-center {
-  0% { opacity: 0; transform: scale(.22); }
-  12% { opacity: .86; transform: scale(1); }
-  48% { opacity: .35; transform: scale(.75); }
-  100% { opacity: 0; transform: scale(.2); }
+@keyframes asb-confetti-fly {
+  0% { opacity: 0; transform: translate(0,0) rotate(0deg) scale(.55); }
+  9% { opacity: 1; }
+  48% { opacity: 1; }
+  78% { opacity: .8; }
+  100% { opacity: 0; transform: translate(var(--dx),var(--dy)) rotate(var(--turn)) scale(.68); }
+}
+@keyframes asb-confetti-flash {
+  0% { opacity: 0; transform: scale(.25); }
+  10% { opacity: 1; transform: scale(1.15); }
+  30% { opacity: .55; transform: scale(.8); }
+  100% { opacity: 0; transform: scale(.15); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .asb-starburst { display: none!important; }
+  .asb-confetti-burst { display: none !important; }
 }
 
 /* Long-form technical article: figures, restored sheets, and information hierarchy. */
