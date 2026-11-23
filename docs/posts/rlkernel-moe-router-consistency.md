@@ -123,4 +123,4 @@ MoE Router 一致性问题的核心是**把模糊的训练/推理漂移变成可
 
 [RL-Kernel 开源仓库](https://github.com/RL-Align/RL-Kernel) · [Megatron-LM](https://github.com/NVIDIA/Megatron-LM) · [vLLM](https://github.com/vllm-project/vllm) · [PyTorch 数值精度说明](https://docs.pytorch.org/docs/stable/notes/numerical_accuracy.html)
 
-本文从公开项目目标与 MoE Router 的通用数值机制出发构建验证方法，不将尚未核对到已合并源码的个人简历描述、测试数量或性能数据认定为既成实现。
+本文围绕 MoE Router 的可验证正确性契约讨论设计方法，具体测试覆盖和实际性能应以项目公开实现与实测结果为准。
