@@ -1,33 +1,33 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 520" role="img" aria-labelledby="t d">
 <title id="t">TransferQueue 控制面与数据面及重构边界</title>
 <desc id="d">左侧客户端生产者与消费者通过控制面获取元数据，Ray 管理 Actor 生命周期，Rust 处理高频 metadata RPC；数据面中 StorageManager 和 SimpleStorage 使用 PayloadTransfer 抽象连接 ZMQ 或未来的 UCX、NIXL 适配器。</desc>
-<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#101b16"/><stop offset="1" stop-color="#14251d"/></linearGradient><marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M1 1L7 4L1 7" fill="none" stroke="#9cf5b7" stroke-width="1.6"/></marker></defs>
+<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ffffff"/><stop offset="1" stop-color="#ffffff"/></linearGradient><marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M1 1L7 4L1 7" fill="none" stroke="#4583bd" stroke-width="1.6"/></marker></defs>
 <rect width="1120" height="520" rx="18" fill="url(#bg)"/>
 <g font-family="system-ui, PingFang SC, sans-serif">
-<text x="38" y="42" font-size="14" letter-spacing="2" fill="#83f3a8">TRANSFERQUEUE / SYSTEM ARCHITECTURE</text>
-<text x="38" y="83" font-size="27" font-weight="750" fill="#f0f4f1">控制面与数据面：两种不同的重构</text>
-<text x="38" y="112" font-size="14" fill="#a6c6b1">控制 RPC 和 Tensor Payload 沿不同路径流动，不应把 Rust Controller 与 RDMA 传输混成一次替换。</text>
-<g fill="#142f22" stroke="#568b69" stroke-width="1.6">
+<text x="38" y="42" font-size="14" letter-spacing="2" fill="#087f55">TRANSFERQUEUE / SYSTEM ARCHITECTURE</text>
+<text x="38" y="83" font-size="27" font-weight="750" fill="#172d43">控制面与数据面：两种不同的重构</text>
+<text x="38" y="112" font-size="14" fill="#172d43">控制 RPC 和 Tensor Payload 沿不同路径流动，不应把 Rust Controller 与 RDMA 传输混成一次替换。</text>
+<g fill="#def8e9" stroke="#4583bd" stroke-width="1.6">
 <rect x="38" y="148" width="214" height="297" rx="12"/>
 <rect x="291" y="148" width="350" height="297" rx="12"/>
 <rect x="682" y="148" width="400" height="297" rx="12"/>
 </g>
-<text x="56" y="181" fill="#e6fff0" font-size="18" font-weight="700">RL 组件</text>
-<text x="309" y="181" fill="#e6fff0" font-size="18" font-weight="700">控制面 / Metadata</text>
-<text x="700" y="181" fill="#e6fff0" font-size="18" font-weight="700">数据面 / Payload</text>
-<g fill="#204333" stroke="#6db68b" stroke-width="1.2">
+<text x="56" y="181" fill="#172d43" font-size="18" font-weight="700">RL 组件</text>
+<text x="309" y="181" fill="#172d43" font-size="18" font-weight="700">控制面 / Metadata</text>
+<text x="700" y="181" fill="#172d43" font-size="18" font-weight="700">数据面 / Payload</text>
+<g fill="#dfedff" stroke="#4583bd" stroke-width="1.2">
 <rect x="56" y="220" width="178" height="55" rx="8"/><rect x="56" y="311" width="178" height="55" rx="8"/>
 <rect x="309" y="218" width="312" height="55" rx="8"/><rect x="309" y="307" width="312" height="104" rx="8"/>
 <rect x="700" y="218" width="362" height="55" rx="8"/><rect x="700" y="306" width="362" height="105" rx="8"/>
 </g>
-<g text-anchor="middle" fill="#ebfff3" font-weight="650" font-size="16">
+<g text-anchor="middle" fill="#172d43" font-weight="650" font-size="16">
 <text x="145" y="253">Producer / Rollout</text><text x="145" y="344">Consumer / Trainer</text>
 <text x="465" y="242">Ray Actor Shell · Python</text>
 <text x="465" y="337">Rust Metadata Engine</text>
 <text x="881" y="246">StorageManager / SimpleStorage</text>
 <text x="881" y="335">PayloadTransfer 接口</text>
 </g>
-<g text-anchor="middle" font-size="12" fill="#9dd9b1">
+<g text-anchor="middle" font-size="12" fill="#087f55">
 <text x="465" y="262">发现 · 启动 · 配置</text>
 <text x="465" y="361">ZMQ RPC · MsgPack · Bitset</text>
 <text x="465" y="382">PyO3 进程内集成</text>
@@ -35,13 +35,13 @@
 <text x="881" y="357">ZMQ 适配器（已提案实现）</text>
 <text x="881" y="380">UCX / NIXL（设计目标）</text>
 </g>
-<g fill="none" stroke="#85e7ab" stroke-width="2" marker-end="url(#arr)">
+<g fill="none" stroke="#4583bd" stroke-width="2" marker-end="url(#arr)">
 <path d="M254 244H299"/><path d="M299 343H254"/>
 <path d="M643 343H692"/>
 <path d="M700 252H651"/>
 <path d="M465 275V300"/>
 </g>
-<g font-size="12" fill="#b7ddc4"><text x="258" y="232">RPC →</text><text x="645" y="328">路由 →</text><text x="636" y="234">← 数据状态</text></g>
-<line x1="38" y1="468" x2="1082" y2="468" stroke="#557f64" opacity=".7"/>
-<text x="38" y="491" font-size="13" fill="#a4c3af">示意图：两条重构路线的职责边界；并非逐个 RPC 的完整时序图。</text>
+<g font-size="12" fill="#172d43"><text x="258" y="232">RPC →</text><text x="645" y="328">路由 →</text><text x="636" y="234">← 数据状态</text></g>
+<line x1="38" y1="468" x2="1082" y2="468" stroke="#4583bd" opacity=".7"/>
+<text x="38" y="491" font-size="13" fill="#172d43">示意图：两条重构路线的职责边界；并非逐个 RPC 的完整时序图。</text>
 </g></svg>
