@@ -1,6 +1,12 @@
 {
-  "run_id": "45129065526",
-  "source_sha": "d504ef67ab652667bf04059b1573fde1b2f055da",
+  "live_site": {
+    "checked": true,
+    "http_status": 200,
+    "page_kind": "vitepress",
+    "has_home_hero": true
+  },
+  "run_id": "45129363040",
+  "source_sha": "fad96e1c84430056bf129ce1f2ccffcf8615b708",
   "build": "success",
   "deploy": "success",
   "result": "success"
