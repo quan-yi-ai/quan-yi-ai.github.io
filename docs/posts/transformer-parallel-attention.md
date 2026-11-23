@@ -69,7 +69,7 @@ lastUpdated: false
 ## 二　单卡 Transformer 的计算与张量布局
 
 <figure class="asb-figure asb-figure--source">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大图片：技术示意图 1"><img src="/images/parallel/figure-1.svg" alt="技术示意图 1" loading="lazy" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大图片：单卡 Transformer Attention 与 FFN 前向数据流"><img src="/images/parallel/figure-1.svg" alt="单卡 Transformer 的 Attention 与 FFN 前向计算流程" loading="lazy" /></button>
   <figcaption>单卡 Transformer 的 Attention 与 FFN 计算流程</figcaption>
 </figure>
 
@@ -109,18 +109,18 @@ TP 的核心不是“每张卡算一半”这么简单，而是要问：**两张
 
 Dense FFN 通常把这两种切法连用。第一层按输出特征切，本地激活后直接交给第二层，第二层按输入特征切。Attention 的常规 MHA 投影沿用相同思路，Q、K、V 投影按整颗 head 分配输出特征，输出投影再归约各 rank 的部分和。
 
-### Attention 与 FFN 中的 Column / Row Parallel
+Attention 与 FFN 的典型 TP 实现都可以由 Column Parallel 和 Row Parallel 两种 GEMM 组合得到。下面分别沿 Head 和 FFN 中间维度推导。
 
-### TP 在 Attention 里切 head 数
+### Attention Head 切分与输出归约
 
 <figure class="asb-figure asb-figure--source">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大图片：技术示意图 2"><img src="/diagrams/tp-attention-heads.svg" alt="TP Attention 的 Head 切分和两个 GPU 的输出投影部分和归约矢量图" loading="lazy" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大图片：张量并行的 Attention Head 切分与部分和归约"><img src="/diagrams/tp-attention-heads.svg" alt="TP Attention 的 Head 切分和两个 GPU 的输出投影部分和归约矢量图" loading="lazy" /></button>
   <figcaption>Tensor Parallelism：每卡处理部分 Attention Head，输出投影后归约部分和</figcaption>
 </figure>
 
 每个 rank 的 Q、K、V 权重按输出特征列切为 [H, A / T]，都处理完整 S 个 token。MHA 的每张卡负责 Nₕ / T 个完整 head，head 宽度 Dₕ 不变。本地分数形状为 [B, Nₕ / T, S, S]。本地 head 拼成 [M, A / T]，乘本地输出投影权重 [A / T, H] 得到 [M, H] 部分和。纯 TP 用 AllReduce 求和，TP+SP 用 ReduceScatter 求和并把 token 分回各卡。对 GQA/MQA，KV head 数比 Q head 少，KV 如何分布或复制要看实现。
 
-### TP 在 FFN 里切中间特征
+### FFN 中间特征切分与输出归约
 
 第一层每卡做 [M, H] × [H, F / T] → [M, F / T]；各卡产出不同特征列，激活在本地做。第二层每卡做 [M, F / T] × [F / T, H] → [M, H]；各卡产出同一组输出位置的部分和。纯 TP 走 AllReduce，TP+SP 走 ReduceScatter。开启 SP 时，Q、K、V 或 FFN 第一层入口先 AllGather，恢复本线性层所需的 token。
 
@@ -195,7 +195,7 @@ $$
 求和沿 key 维进行。分子和分母同乘 exp(−m)，结果相同，并能避免指数上溢。掩码位置的权重为 0。下面的 Online Softmax 把跨所有可见 key 的归一化改成逐块更新。
 
 <figure class="asb-figure asb-figure--source">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大图片：技术示意图 3"><img src="/diagrams/online-softmax.svg" alt="Online Softmax 逐块遍历 KV Tile，并更新运行最大值、指数和与加权输出的原创矢量数据流图" loading="lazy" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大图片：Online Softmax 的跨块归一化状态更新"><img src="/diagrams/online-softmax.svg" alt="Online Softmax 逐块遍历 KV Tile，并更新运行最大值、指数和与加权输出的原创矢量数据流图" loading="lazy" /></button>
   <figcaption>Online Softmax：逐块扫描 KV 并维护归一化状态</figcaption>
 </figure>
 
@@ -237,10 +237,10 @@ Q、K、V 按 tile 搬到片上，分数和概率就地消费，避免把完整 
 
 当上下文被切到多个 GPU 时，每个 Query 都需要汇聚所有可见 Key 的贡献。不同算法对通信对象的选择，决定了性能特征。
 
-### Ring Attention 是 CP 的一种实现
+### Ring Attention：K/V 分片轮转
 
 <figure class="asb-figure asb-figure--source">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大图片：技术示意图 5"><img src="/images/parallel/figure-5.svg" alt="技术示意图 5" loading="lazy" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大图片：四 GPU Ring Attention 的 K/V 分片轮转"><img src="/images/parallel/figure-5.svg" alt="四 GPU Ring Attention 中的 K/V 分片轮转" loading="lazy" /></button>
   <figcaption>Context Parallelism 中的 Ring Attention 数据交换</figcaption>
 </figure>
 
@@ -248,7 +248,7 @@ Q、K、V 按 tile 搬到片上，分数和概率就地消费，避免把完整 
 
 **这里的 Ring 不是 Ring AllGather。** Ring Attention 沿设备环传递 K/V 分片，让每个 Query 分片依次访问全局上下文；Ring AllGather 则是集合通信的一种实现算法，传输的可能是线性层输入激活。两者可以使用相似的网络拓扑，但通信对象、计算依赖和最终目的并不一样。
 
-### Tree Attention：把 Softmax 的统计量沿树合并
+### Tree Attention：Softmax 统计量的树形归约
 
 Ring Attention 的思路是把 K/V 分片沿环传到需要计算的位置；另一条路线是不搬运整段 K/V，而是让设备分别计算当前 Query 对本地 K/V 分片的贡献，再对结果进行归约。**Tree Attention**（这里指 *Topology-aware Decoding for Long-Context Attention on GPU Clusters*）主要面向分布式长上下文 **decode**，利用树形归约以及分层互连来降低跨设备传输与同步开销。
 
@@ -274,7 +274,7 @@ $$
 
 参考：[Tree Attention 原论文](https://arxiv.org/abs/2408.04093) · [代码实现](https://github.com/Zyphra/tree_attention)
 
-### Ulysses：通过 All-to-All 重排序列与 Head
+### Ulysses：基于 All-to-All 的维度重排
 
 还有一种不同的分布式 Attention 思路：**DeepSpeed Ulysses** 在设备间进行 All-to-All，使数据由序列维切分转换为 Head 维切分；每张卡随后对自己的 Head 计算 Attention，再进行反向的 All-to-All 还原布局。
 
@@ -342,7 +342,7 @@ $$
 
 本示例是**稠密模型**且 CP=EP=1。因此不会发生跨 GPU 的专家 Dispatch，也不需要 Ring/Tree Attention 的 CP 数据流。如果后续把上下文再沿 CP=2 切分，必须重新计算 world size、每 Rank Q/K/V 形状以及跨设备 Attention 的通信代价；不能在原有 8 GPU 拓扑上凭空再添一个独立维度。
 
-### 常见实现问题
+### 关键机制辨析
 
 **Q：Column Parallel 后是不是一定要 AllGather？** 不一定。若下游直接消费分片（例如紧接的 Row Parallel），可以保持分片；是否收集取决于布局需求。
 
@@ -360,7 +360,7 @@ $$
 
 这套判断方法可以继续用于理解分布式训练、长上下文推理、MoE 路由和强化学习后训练框架中的训推数据流。
 
-## 延伸阅读：Attention 实现与 KV Cache 系统
+## 扩展：Attention Kernel 与 KV Cache 管理
 
 以下内容与并行设计相关，但属于**不同抽象层**：FlashAttention 主要关注单 GPU Attention 的 IO / Kernel 执行，PagedAttention 关注推理 KV Cache 的逻辑块映射，LMCache / Mooncake / HiCache 关注缓存的层次与跨系统迁移。它们可以和 TP / CP 等并行策略同时存在，不应混作并行度的独立轴。
 
@@ -398,7 +398,7 @@ MLA（Multi-head Latent Attention）使用低秩潜变量压缩 KV。以 DeepSee
 推理服务还需要解决另一个独立问题：历史 K/V 怎样存放、查找、复用并迁移，而不是只考虑一次 Attention 如何在 GPU 之间计算。
 
 <figure class="asb-figure asb-figure--source">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大图片：技术示意图 4"><img src="/images/parallel/figure-4.svg" alt="技术示意图 4" loading="lazy" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大图片：PagedAttention 逻辑 KV 块到物理块的映射"><img src="/images/parallel/figure-4.svg" alt="PagedAttention 中逻辑 KV 块与物理存储块的映射" loading="lazy" /></button>
   <figcaption>PagedAttention 的 KV Cache 块映射</figcaption>
 </figure>
 
@@ -424,7 +424,7 @@ PagedAttention 关注的是 KV Cache 的**逻辑位置与物理存储块之间�
 
 以下列出 NCCL 的一些关键环节，帮助把前面 AllGather、ReduceScatter、AllReduce 的逻辑通信映射到实际执行。**注意：这不是一次 AllReduce 必定按顺序执行的七个固定阶段**。初始化、拓扑发现、协议选择、通道组织、GPU Kernel 与网络传输在不同硬件和协议下的执行路径可能不同。
 
-**NCCL 通信的典型环节（部分细节仍需核对）**
+**NCCL 通信路径涉及的典型组件**
 
 | 阶段 | 核心操作 | 备注 |
 | --- | --- | --- |
