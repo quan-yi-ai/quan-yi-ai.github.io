@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 540" role="img" aria-labelledby="t d">
+<title id="t">八张 GPU 的数据并行、张量并行和流水线并行拓扑</title><desc id="d">两个数据并行副本，每个副本四张 GPU，分成两个流水线阶段，每个阶段使用两张 GPU 进行张量并行。DP 同坐标同步梯度，TP 同阶段归约张量，PP 在阶段之间传递激活。</desc>
+<defs><linearGradient id="b" x2="1" y2="1"><stop stop-color="#101a17"/><stop offset="1" stop-color="#13231d"/></linearGradient><marker id="a" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M1 1L7 4L1 7" fill="none" stroke="#91efb5" stroke-width="1.5"/></marker></defs>
+<rect width="1120" height="540" rx="18" fill="url(#b)"/>
+<g font-family="system-ui, PingFang SC, sans-serif"><text x="38" y="43" fill="#83f3a8" font-size="14" letter-spacing="2">PARALLEL GROUPS / 8 GPUS</text><text x="38" y="84" fill="#f0f4f1" font-size="26" font-weight="720">DP × TP × PP = 2 × 2 × 2</text><text x="38" y="112" fill="#afc8b6" font-size="14">同一份模型在两个 DP 副本中运行；副本内部沿层和张量继续切分。</text>
+<g fill="#152c24" stroke="#4a8f69" stroke-width="1.5"><rect x="38" y="147" width="506" height="310" rx="14"/><rect x="576" y="147" width="506" height="310" rx="14"/></g>
+<g fill="#e7fff0" font-size="19" font-weight="720"><text x="60" y="180">DP replica 0</text><text x="598" y="180">DP replica 1</text></g>
+<g fill="#9bc5ac" font-size="13"><text x="60" y="204">不同样本 / 同一组模型参数</text><text x="598" y="204">不同样本 / 同一组模型参数</text></g>
+<g fill="#173a2c" stroke="#5ca877" stroke-width="1.3"><rect x="61" y="229" width="215" height="168" rx="11"/><rect x="305" y="229" width="215" height="168" rx="11"/><rect x="599" y="229" width="215" height="168" rx="11"/><rect x="843" y="229" width="215" height="168" rx="11"/></g>
+<g fill="#caffda" font-size="15" font-weight="680" text-anchor="middle"><text x="168" y="258">PP stage 0</text><text x="412" y="258">PP stage 1</text><text x="706" y="258">PP stage 0</text><text x="950" y="258">PP stage 1</text></g>
+<g fill="#accbb5" font-size="12" text-anchor="middle"><text x="168" y="279">Layers 0–11</text><text x="412" y="279">Layers 12–23</text><text x="706" y="279">Layers 0–11</text><text x="950" y="279">Layers 12–23</text></g>
+<g fill="#225442" stroke="#86d8a4" stroke-width="1.2"><rect x="76" y="303" width="84" height="53" rx="7"/><rect x="172" y="303" width="84" height="53" rx="7"/><rect x="320" y="303" width="84" height="53" rx="7"/><rect x="416" y="303" width="84" height="53" rx="7"/><rect x="614" y="303" width="84" height="53" rx="7"/><rect x="710" y="303" width="84" height="53" rx="7"/><rect x="858" y="303" width="84" height="53" rx="7"/><rect x="954" y="303" width="84" height="53" rx="7"/></g>
+<g fill="#eafff1" font-size="15" font-weight="700" text-anchor="middle"><text x="118" y="335">GPU 0</text><text x="214" y="335">GPU 1</text><text x="362" y="335">GPU 2</text><text x="458" y="335">GPU 3</text><text x="656" y="335">GPU 4</text><text x="752" y="335">GPU 5</text><text x="900" y="335">GPU 6</text><text x="996" y="335">GPU 7</text></g>
+<g stroke="#8deab1" stroke-width="2" fill="none"><path d="M160 329H172 M404 329H416 M698 329H710 M942 329H954"/></g>
+<g fill="#a3efbe" font-size="12" text-anchor="middle"><text x="168" y="378">TP = 2</text><text x="412" y="378">TP = 2</text><text x="706" y="378">TP = 2</text><text x="950" y="378">TP = 2</text></g>
+<g stroke="#91efb5" stroke-width="2" marker-end="url(#a)" fill="none"><path d="M277 317H297"/><path d="M815 317H835"/></g>
+<g fill="#b5d7bf" font-size="11" text-anchor="middle"><text x="288" y="298">PP</text><text x="826" y="298">PP</text></g>
+<g stroke="#67cba8" stroke-width="1.8" fill="none" stroke-dasharray="5 6"><path d="M118 401V428H656V401"/><path d="M214 408V441H752V408"/><path d="M362 408V429H900V408"/><path d="M458 415V443H996V415"/></g>
+<text x="560" y="482" text-anchor="middle" font-size="14" fill="#9ad4b0">虚线：相同 TP / PP 坐标的两个 DP 副本执行梯度同步</text>
+<line x1="38" y1="500" x2="1082" y2="500" stroke="#426f57" opacity=".7"/>
+<text x="38" y="521" fill="#8aab97" font-size="12">示意：逻辑进程组并非 GPU 物理互连拓扑；网络路径需结合具体部署确定。</text>
+</g></svg>
