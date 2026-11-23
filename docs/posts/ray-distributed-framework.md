@@ -16,7 +16,7 @@ lastUpdated: false
   <p class="asb-story-deck">将一个 Python 函数放到多台机器上执行，除了远程调用，还需要决定任务在哪里运行、结果在哪里保存、依赖如何传递，以及 Worker 失败以后怎样恢复。沿一组真实代码追踪 Ray 的分布式执行机制。</p>
 </div>
 
-Ray 提供了一套跨进程与跨节点的执行抽象：**Task** 负责一次性远程计算，**Actor** 提供持久状态，**ObjectRef** 表示结果引用与数据依赖。理解这三者之后，才能解释 Raylet、GCS、Object Store 和 Ray 在 vLLM 分布式推理中的作用。
+Ray 的分布式执行模型以三个基础概念为核心：**Task** 负责一次性远程计算，**Actor** 提供持久状态，**ObjectRef** 表示结果引用与数据依赖。理解这三者之后，才能解释 Raylet、GCS、Object Store 和 Ray 在 vLLM 分布式推理中的作用。
 
 ## 一、Ray Core：Task、Actor 与 ObjectRef
 
@@ -109,9 +109,9 @@ Ray 对资源的分配和执行地点的决定，不等于它同时负责业务�
 
 ## 三、对象生命周期与故障恢复
 
-Ray 将返回对象的引用和对象值分开管理。结果可能存在 Object Store 中，需要它的 Worker 可能通过本地访问或跨节点传输取得对象。对象的生命周期还会受引用计数、内存使用和系统配置影响。
+Ray 将对象引用与对象值分别管理。结果可能存在 Object Store 中，需要它的 Worker 可能通过本地访问或跨节点传输取得对象。对象的生命周期还会受引用计数、内存使用和系统配置影响。
 
-**失败后的恢复必须区分三类场景。**
+故障恢复可分为三个层面：
 
 - Task 出错：能否重试取决于配置、失败类型以及任务是否包含外部副作用；重试可能导致外部操作重复执行。
 - Actor 进程故障：可配置重启与方法重试，但进程内业务状态不会在所有场景下自动恢复；需要显式持久化或重建。
@@ -123,7 +123,7 @@ GCS 主要管理集群级控制信息，而非保存全部对象数据或提供�
 
 在多 GPU 推理场景中，需要区分分布式资源管理与模型执行两类职责。
 
-**Ray 管理 Worker 的分布式创建与资源放置；vLLM 负责模型加载、执行引擎、TP/PP 策略和所需 GPU 通信的初始化。** 不能把 NCCL AllReduce 简单说成由 Ray 的 GCS 来完成。
+**Ray 管理 Worker 的分布式创建与资源放置；vLLM 负责模型加载、执行引擎、TP/PP 策略和所需 GPU 通信的初始化。** GCS 并不参与执行模型的 NCCL AllReduce。
 
 <figure class="asb-figure asb-figure--cover">
   <button class="asb-zoom-trigger" type="button" aria-label="放大 Ray vLLM 资源管理示意"><img src="/diagrams/ray-vllm-boundary.svg" alt="Ray 负责 GPU Worker 放置，vLLM 负责模型执行和 NCCL 通信" loading="lazy" /></button>
@@ -147,7 +147,7 @@ vllm serve <MODEL_PATH> \
   --distributed-executor-backend ray
 ```
 
-这是为了说明各组件的**职责和参数关系**，不是可直接复制到任意集群的完整安装指南。分布式部署还要保证版本兼容、模型文件访问、GPU/NIC 设备可见性、网络与通信库配置。
+该示例用于说明资源与执行后端的配置关系，不包含完整的集群部署准备步骤。分布式部署还要保证版本兼容、模型文件访问、GPU/NIC 设备可见性、网络与通信库配置。
 
 启动流程可以拆成三段：
 
@@ -174,7 +174,7 @@ Ray Dashboard 提供 Cluster、Jobs、Actors、Metrics、Logs 等观察入口。
 
 假设 vLLM 使用 Ray Executor 启动后一直没有进入服务就绪状态。
 
-先确认**Ray 是否能发现足够 GPU**。如果资源不够，检查节点、Placement Group、资源占用。如果 GPU 资源已经预留，再检查 Worker Actor 的生命周期；Actor 启动失败应重点查看其日志。如果 Actor 已运行，但停在模型初始化或集合通信阶段，再分析 vLLM 和 NCCL 的日志。
+首先确认**Ray 是否能发现足够 GPU**。如果资源不够，检查节点、Placement Group、资源占用。如果 GPU 资源已经预留，再检查 Worker Actor 的生命周期；Actor 启动失败应重点查看其日志。如果 Actor 已运行，但停在模型初始化或集合通信阶段，再分析 vLLM 和 NCCL 的日志。
 
 这样可以将资源调度、Actor 生命周期和模型初始化问题分别定位。Dashboard 的具体入口和可用指标会因版本以及监控部署而变化。
 
