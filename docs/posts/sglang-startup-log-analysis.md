@@ -18,10 +18,10 @@ lastUpdated: false
 
 本文分析一份具体的启动记录：2026 年 9 月 8 日，单张 **RTX 5090（32 GB）** 上启动 **Qwen/Qwen3-0.6B**，使用的命令为：
 
-\`\`\`bash
+```bash
 sglang serve --model-path Qwen/Qwen3-0.6B \
   --host 0.0.0.0 --port 30000
-\`\`\`
+```
 
 日志数值属于这一台设备、这一模型和当时的软件配置，**不是所有 SGLang 版本的固定默认值**。以下会区分日志中明确出现的事实与基于推理框架机制的解释，避免将一次运行记录误当成普遍结论。
 
@@ -40,23 +40,23 @@ sglang serve --model-path Qwen/Qwen3-0.6B \
 
 日志一开始显示：
 
-\`\`\`text
+```text
 [20:51:24] Attention backend not specified.
              Use flashinfer backend by default.
 [20:51:25] server_args={'model_path': 'Qwen/Qwen3-0.6B', ...}
-\`\`\`
+```
 
-这里有两个重要信息。首先，未指定 Attention Backend 时，当时版本和环境选择了 FlashInfer；**这不是所有 GPU、模型或新版 SGLang 都必然选择 FlashInfer 的保证**。其次，\`server_args\` 记录最终生效的配置，应该比“我以为命令行参数是什么”更值得信任。
+这里有两个重要信息。首先，未指定 Attention Backend 时，当时版本和环境选择了 FlashInfer；**这不是所有 GPU、模型或新版 SGLang 都必然选择 FlashInfer 的保证**。其次，`server_args` 记录最终生效的配置，应该比“我以为命令行参数是什么”更值得信任。
 
 本次日志中有以下参数：
 
 | 参数 | 日志中的值 | 影响 |
 | --- | --- | --- |
-| \`mem_fraction_static\` | 0.874 | 控制部分静态显存预留的资源预算 |
-| \`context_len\` | 40960 | 模型配置与运行时约束下的上下文长度 |
-| \`chunked_prefill_size\` | 2048 | Chunked Prefill 切分规模 |
-| \`max_running_requests\` | 3001 | 调度层的配置上限，不等于 GPU 真能同时容纳这么多长请求 |
-| \`schedule_policy\` | fcfs | 采用的请求调度策略 |
+| `mem_fraction_static` | 0.874 | 控制部分静态显存预留的资源预算 |
+| `context_len` | 40960 | 模型配置与运行时约束下的上下文长度 |
+| `chunked_prefill_size` | 2048 | Chunked Prefill 切分规模 |
+| `max_running_requests` | 3001 | 调度层的配置上限，不等于 GPU 真能同时容纳这么多长请求 |
+| `schedule_policy` | fcfs | 采用的请求调度策略 |
 
 启动时还检测到了模型对应的 Reasoning / Tool Parser 配置，使后续服务能够处理适当的生成与解析语义。
 
@@ -64,38 +64,38 @@ sglang serve --model-path Qwen/Qwen3-0.6B \
 
 日志中的分布式初始化片段：
 
-\`\`\`text
+```text
 [20:51:33] Init torch distributed begin.
 [20:51:33] Init torch distributed ends.
              elapsed=0.11 s, mem usage=0.08 GB
-\`\`\`
+```
 
 即使单卡部署，运行时也可能沿统一的分布式初始化路径准备相关通信与执行组件。这并不意味着单卡必须发生跨 GPU AllReduce，而是说明软件将单卡视为可扩展分布式运行时的一种配置。
 
 模型权重阶段的日志显示：
 
-\`\`\`text
+```text
 [20:51:34] Load weight begin. avail mem=30.71 GB
 [20:51:34] Found local HF snapshot ... skipping download.
 [20:51:34] Load weight end. elapsed=0.34 s,
              type=Qwen3ForCausalLM,
              avail mem=29.53 GB, mem usage=1.18 GB.
-\`\`\`
+```
 
 在该次运行中，权重加载阶段约 **0.34 秒**，记录的显存变化与 0.6B 参数规模和 BF16 存储量级相符。但不能把它直接解释成“任意 0.6B 模型都能在 0.34 秒内加载”：本地 Snapshot、文件格式、权重切片、磁盘缓存和初始化逻辑都会影响耗时。
 
-本次还有 \`Parameter lm_head.weight not found in params_dict\` 相关日志，服务仍继续运行。在共享输出层/Embedding 权重的模型上，这可能是预期行为；**遇到相同文本应当结合模型结构和后续权重校验判断**，不能把这一告警一概视为永远可忽略。
+本次还有 `Parameter lm_head.weight not found in params_dict` 相关日志，服务仍继续运行。在共享输出层/Embedding 权重的模型上，这可能是预期行为；**遇到相同文本应当结合模型结构和后续权重校验判断**，不能把这一告警一概视为永远可忽略。
 
 ## 四、KV Cache 分配：为什么它比模型权重更占显存？
 
 这次启动中最醒目的两个数值来自 KV Cache：
 
-\`\`\`text
+```text
 [20:51:35] KV Cache is allocated.
              dtype: torch.bfloat16, #tokens: 240120,
              K size: 12.82 GB, V size: 12.82 GB
 [20:51:35] Memory pool end. avail mem=3.36 GB
-\`\`\`
+```
 
 也就是说，日志记录的 K 与 V Cache 各约 **12.82 GB**，合计约 **25.64 GB**；与权重的 1.18 GB 相比，KV Cache 占了明显更大的显存比例。
 
@@ -106,17 +106,17 @@ sglang serve --model-path Qwen/Qwen3-0.6B \
 
 ### 240120 个 Token 等于 240120 个并发请求吗？
 
-**不是。** \`#tokens: 240120\` 表示这份 KV Cache 的 Token 容量量级；一个请求可能占用上千 Token，多个请求还有不同长度的历史上下文、前缀缓存共享及临时工作区开销。能够同时运行多少请求，受每请求 KV 占用、模型结构、调度策略和剩余显存共同制约。
+**不是。** `#tokens: 240120` 表示这份 KV Cache 的 Token 容量量级；一个请求可能占用上千 Token，多个请求还有不同长度的历史上下文、前缀缓存共享及临时工作区开销。能够同时运行多少请求，受每请求 KV 占用、模型结构、调度策略和剩余显存共同制约。
 
-同理，\`max_running_requests=3001\` 是调度配置上限，不等于 3001 条请求都能在内存和算力条件下同时执行。
+同理，`max_running_requests=3001` 是调度配置上限，不等于 3001 条请求都能在内存和算力条件下同时执行。
 
-\`mem_fraction_static\` 也不是一个能把静态显存精确拆成全部项目的万能公式。想核算真实显存预算，需要同时测量权重、KV Pool、CUDA Graph Workspace、运行时其他 Buffer 与剩余显存。
+`mem_fraction_static` 也不是一个能把静态显存精确拆成全部项目的万能公式。想核算真实显存预算，需要同时测量权重、KV Pool、CUDA Graph Workspace、运行时其他 Buffer 与剩余显存。
 
 ## 五、CUDA Graph Capture：为什么启动时要运行很多遍模型？
 
 日志中的 Graph Capture 片段：
 
-\`\`\`text
+```text
 [20:51:36] Capture target prefill CUDA graph begin.
              backend=breakable, num_tokens=[4, 8, ..., 2048]
 [20:51:39] Capture target prefill CUDA graph end.
@@ -127,7 +127,7 @@ sglang serve --model-path Qwen/Qwen3-0.6B \
              bs=[1, 2, 4, 8, 12, 16, 24]
 [20:51:40] Capture target decode CUDA graph end.
              elapsed=0.82 s
-\`\`\`
+```
 
 CUDA Graph 允许将适用的 GPU 调用序列捕获后重复 Replay，从而减少重复启动大量 Kernel 的 CPU 提交开销。特别是在短序列 Decode 或小 Batch 下，这类开销有可能占据较大比例。
 
@@ -139,24 +139,24 @@ CUDA Graph 的重要限制包括设备地址稳定、可捕获操作集合、Buf
 
 完成缓存和 Graph 初始化后，日志包含：
 
-\`\`\`text
+```text
 max_total_num_tokens=240120,
 chunked_prefill_size=2048,
 max_prefill_tokens=16384,
 max_running_requests=3001
 Init Unified Radix Cache...
-\`\`\`
+```
 
-\`max_total_num_tokens\` 与上文 KV Cache 容量对应，是调度资源预算的重要依据。Radix / Prefix Cache 管理可复用的历史 KV 前缀，让具有相同前缀的后续请求有机会避免重复计算；但命中率取决于真实请求分布，不能仅凭打开 Cache 就保证加速。
+`max_total_num_tokens` 与上文 KV Cache 容量对应，是调度资源预算的重要依据。Radix / Prefix Cache 管理可复用的历史 KV 前缀，让具有相同前缀的后续请求有机会避免重复计算；但命中率取决于真实请求分布，不能仅凭打开 Cache 就保证加速。
 
 HTTP 服务随后开始监听并完成启动检查：
 
-\`\`\`text
+```text
 [20:51:41] Uvicorn running on http://0.0.0.0:30000
 [20:51:42] GET /model_info ... 200 OK
 [20:51:42] POST /generate ... 200 OK
 [20:51:42] The server is fired up and ready to roll!
-\`\`\`
+```
 
 这里最有价值的是把**端口已经监听**与**模型请求真的能够被服务处理**区分开。前者只说明 Web Server 启动，后者还需要模型执行和必要的调度初始化成功。部分启动脚本会进行内部预热或探活请求，具体做法依赖版本。
 
@@ -166,20 +166,20 @@ HTTP 服务随后开始监听并完成启动检查：
 
 本次排查采用了：
 
-\`\`\`bash
+```bash
 export HF_HUB_OFFLINE=1
-\`\`\`
+```
 
 在缓存文件完整的情况下，Hugging Face 离线模式可以阻止部分远程 Hub 查询，使加载逻辑直接使用本地资源。但**如果权重、Tokenizer 或配置尚未缓存完整，离线模式也可能导致启动失败**。因此它适用于已有完整本地模型资源、网络访问不稳定的场景，不是所有启动故障的通用解决方案。
 
-另一种方式是使用真实存在的本地模型目录作为 \`--model-path\`，并确认相关子文件完整。
+另一种方式是使用真实存在的本地模型目录作为 `--model-path`，并确认相关子文件完整。
 
 ## 八、看到这些日志时，应该怎么判断？
 
 | 日志现象 | 优先检查 | 不应立刻下的结论 |
 | --- | --- | --- |
 | Attention Backend 自动选择 | 实际设备与后端支持 | 所有版本都使用相同 Backend |
-| \`lm_head.weight\` 缺失提示 | 是否 Shared / Tied Weights | 任何缺失权重都可忽略 |
+| `lm_head.weight` 缺失提示 | 是否 Shared / Tied Weights | 任何缺失权重都可忽略 |
 | KV Cache 容量较大 | KV Token 数、剩余显存 | 请求并发数必然等于 Cache Token 数 |
 | CUDA Graph Capture 较慢 | Captured Shapes / Warmup 配置 | 所有模型启动都会同样慢 |
 | HF 网络请求超时 | 本地缓存完整性和离线配置 | 模型本体一定损坏 |
