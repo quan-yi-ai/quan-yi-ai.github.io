@@ -1,25 +1,51 @@
 /* AI Systems & Beyond · original editorial theme */
 :root {
   --vp-font-family-base: Inter, "SF Pro Display", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
-  --vp-c-brand-1: #28b589;
-  --vp-c-brand-2: #36c99d;
-  --vp-c-brand-3: #137d60;
-  --vp-c-brand-soft: rgba(40,181,137,.12);
+  --vp-c-brand-1: #168a4c;
+  --vp-c-brand-2: #1fa75e;
+  --vp-c-brand-3: #126d3c;
+  --vp-c-brand-soft: rgba(51,185,105,.12);
   --vp-layout-max-width: 1440px;
 }
 .dark {
-  --vp-c-bg: #080d13;
-  --vp-c-bg-soft: #0d1621;
-  --vp-c-bg-alt: #0a111a;
-  --vp-c-text-1: #e7edf1;
-  --vp-c-text-2: #a8bac5;
-  --vp-c-divider: rgba(167,196,207,.13);
-  --vp-c-brand-1: #6ce6bf;
-  --vp-c-brand-2: #8af4cf;
+  --vp-c-bg: #0b0e0d;
+  --vp-c-bg-soft: #141c17;
+  --vp-c-bg-alt: #101612;
+  --vp-c-text-1: #f0f4f1;
+  --vp-c-text-2: #a6b3ab;
+  --vp-c-divider: rgba(171,204,180,.14);
+  --vp-c-brand-1: #83f3a8;
+  --vp-c-brand-2: #4ade80;
 }
+/* Brighter fresh-green palette on neutral ink backgrounds.
+   Keep light mode readable with a darker green link color. */
+:root:not(.dark) {
+  --vp-c-bg: #ffffff;
+  --vp-c-bg-soft: #f5f8f5;
+  --vp-c-bg-alt: #f7faf7;
+  --vp-c-text-1: #18221b;
+  --vp-c-text-2: #506355;
+  --vp-c-divider: rgba(38,82,53,.13);
+  --vp-c-brand-1: #168a4c;
+  --vp-c-brand-2: #1fa75e;
+  --vp-c-brand-3: #126d3c;
+  --vp-c-brand-soft: rgba(46,169,94,.12);
+}
+.dark {
+  --vp-c-bg-elv: #18221b;
+  --vp-c-bg-mute: #18221b;
+  --vp-c-gutter: #101612;
+  --vp-c-text-3: #809186;
+  --vp-c-brand-soft: rgba(131,243,168,.11);
+}
+.asb-button-primary:hover { background: var(--vp-c-brand-2); }
+.dark .asb-button-primary:hover { background: #a0f8b9; }
+.asb-button-secondary:hover { border-color: var(--vp-c-brand-1); }
+.VPNavBarMenuLink:hover, .VPNavBarMenuLink.active,
+.VPNavBar .VPNavBarMenuGroup .text:hover { color: var(--vp-c-brand-1); }
 html { scroll-behavior:smooth; }
 .VPNavBar { backdrop-filter: blur(18px); }
-.dark .VPNavBar { background: rgba(8,13,19,.7) !important; }
+.dark .VPNavBar { background: rgba(11,14,13,.82) !important; }
 .VPNavBar .title { font-weight:750; letter-spacing:-.04em; }
 .VPDoc h1 { font-weight:800;letter-spacing:-.045em;font-size:clamp(2rem,4vw,3.1rem); }
 .VPDoc h2 { letter-spacing:-.025em; }
@@ -32,10 +58,10 @@ html { scroll-behavior:smooth; }
 .VPDoc div[class*="language-"] { border-radius:12px; }
 .VPContent.is-home { padding-top:0; }
 .asb-home { position:relative;isolation:isolate;overflow:hidden; }
-.asb-home:before { content:"";pointer-events:none;position:absolute;inset:0;background-image:radial-gradient(circle,rgba(104,215,188,.2) .8px,transparent 1px);background-size:38px 38px;mask-image:linear-gradient(to bottom,rgba(0,0,0,.5),transparent 48%);z-index:-1; }
+.asb-home:before { content:"";pointer-events:none;position:absolute;inset:0;background-image:radial-gradient(circle,rgba(131,243,168,.15) .8px,transparent 1px);background-size:38px 38px;mask-image:linear-gradient(to bottom,rgba(0,0,0,.5),transparent 48%);z-index:-1; }
 .asb-container { max-width:1120px;margin:auto;padding:0 30px; }
 .asb-hero { padding:clamp(95px,13vw,175px) 0 82px;min-height:590px;display:grid;grid-template-columns:1.15fr .85fr;align-items:center;gap:32px;position:relative; }
-.asb-hero:before { content:"";position:absolute;z-index:-1;width:550px;height:450px;right:-80px;top:44px;background:radial-gradient(ellipse,rgba(42,187,150,.14),transparent 72%);filter:blur(18px); }
+.asb-hero:before { content:"";position:absolute;z-index:-1;width:550px;height:450px;right:-80px;top:44px;background:radial-gradient(ellipse,rgba(70,201,115,.16),transparent 72%);filter:blur(18px); }
 .asb-eyebrow { display:flex;align-items:center;gap:10px;font-size:11px;font-weight:750;letter-spacing:.22em;text-transform:uppercase;color:var(--vp-c-brand-1); }
 .asb-eyebrow:before { content:"";width:18px;height:1px;background:currentColor; }
 .asb-hero h1 { margin:22px 0;font-size:clamp(3.4rem,7.7vw,6.6rem);line-height:1.02;letter-spacing:-.077em;font-weight:800;color:var(--vp-c-text-1); }
@@ -44,10 +70,10 @@ html { scroll-behavior:smooth; }
 .asb-actions { display:flex;gap:13px;align-items:center;margin-top:35px;flex-wrap:wrap; }
 .asb-button { display:inline-flex;align-items:center;gap:10px;padding:12px 19px;border-radius:8px;text-decoration:none !important;font-weight:700;font-size:13px;transition:transform .2s,background .2s; }
 .asb-button:hover { transform:translateY(-2px); }
-.asb-button-primary { color:#05130e !important;background:#79eac3; }
+.asb-button-primary { color:#0b1710 !important;background:var(--vp-c-brand-1); }
 .asb-button-secondary { color:var(--vp-c-text-1) !important;border:1px solid var(--vp-c-divider);background:var(--vp-c-bg-soft); }
 .asb-orbit { position:relative;height:380px;display:grid;place-items:center; }
-.asb-orbit svg { width:100%;max-width:480px;filter:drop-shadow(0 0 24px rgba(80,205,162,.08)); }
+.asb-orbit svg { width:100%;max-width:480px;filter:drop-shadow(0 0 24px rgba(83,230,136,.13)); }
 .asb-orbit-label { position:absolute;left:9%;bottom:7%;font-size:10px;letter-spacing:.16em;color:var(--vp-c-text-2);font-weight:700; }
 .asb-divider { height:1px;background:linear-gradient(90deg,transparent,var(--vp-c-divider) 10%,var(--vp-c-divider) 90%,transparent); }
 .asb-section { padding:78px 0 80px; }
@@ -150,10 +176,10 @@ html { scroll-behavior:smooth; }
 /* Long-form technical article: figures, restored sheets, and information hierarchy. */
 .asb-table-kicker { margin:32px 0 12px;font-size:11px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;color:var(--vp-c-brand-1); }
 .vp-doc table { border:1px solid var(--vp-c-divider);border-radius:10px;overflow:hidden;font-size:.86rem;line-height:1.65;background:var(--vp-c-bg-soft); }
-.vp-doc table th { font-weight:750;background:rgba(74,169,142,.13); }
+.vp-doc table th { font-weight:750;background:rgba(83,188,121,.13); }
 .vp-doc table tr:nth-child(2n) {background:rgba(123,164,161,.04);}
 .vp-doc table td,.vp-doc table th {padding:11px 15px;border:1px solid var(--vp-c-divider);vertical-align:top;}
-.vp-doc .asb-figure { background:linear-gradient(130deg,rgba(63,139,127,.08),rgba(83,124,159,.07)); padding:24px 26px; margin:36px 0; }
+.vp-doc .asb-figure { background:linear-gradient(130deg,rgba(69,166,105,.07),rgba(89,138,104,.05)); padding:24px 26px; margin:36px 0; }
 .vp-doc .asb-figure img { border-radius:6px; width:100%;height:auto;object-fit:contain; }
 .vp-doc .asb-figure figcaption {line-height:1.6;}
 .vp-doc .asb-editorial-heading {margin-bottom:11px;}
