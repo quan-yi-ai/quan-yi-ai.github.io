@@ -16,6 +16,8 @@ lastUpdated: false
   <p class="asb-story-deck">为什么一个以 Python 为主的 RL 数据基础设施，会考虑用 Rust 重构高频控制路径，并为 SimpleStorage 引入可插拔的传输层？关键不只是语言运行速度，而是瓶颈位置、状态表示与模块边界。</p>
 </div>
 
+理解 Controller 重构之前，可以先阅读 [TransferQueue](/posts/transferqueue)，熟悉样本就绪状态、DataFlow 编排与存储后端的分工。
+
 在 RL 后训练系统中，Rollout、Reward、Training 等组件可能以不同速度运行。训练端需要从生产者持续获得可用样本，生产者又需要知道数据何时可消费。随着并发请求、样本数量和数据规模增加，**控制请求的处理效率**和**实际数据的搬运效率**可能分别成为瓶颈。
 
 [TransferQueue](https://github.com/Ascend/TransferQueue) 最近提出两条相关但独立的重构方向：以 Rust 实现 Controller 的高频元数据处理，以及给 SimpleStorage 增加可插拔的 PayloadTransfer 接口。这为理解 Python、C++ 与 Rust 在系统基础设施中的分工提供了一个具体案例。
