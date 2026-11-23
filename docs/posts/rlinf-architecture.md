@@ -33,7 +33,7 @@ RLinf 将分布式执行拆成几个相互配合的抽象：**Runner** 负责训
 
 | 层次 | 代表组件 | 核心问题 |
 | --- | --- | --- |
-| 任务配置 | Hydra YAML、\`rlinf/config.py\` | 这一任务允许哪些算法、模型和部署组合？ |
+| 任务配置 | Hydra YAML、`rlinf/config.py` | 这一任务允许哪些算法、模型和部署组合？ |
 | 生命周期控制 | Runner | 何时启动 Rollout、何时计算 Reward、何时更新 Actor？ |
 | 执行与放置 | Cluster、Placement、WorkerGroup | 哪些 Worker 在哪些 GPU / 节点运行？ |
 | 数据和计算 | Channel、Actor、Rollout、Hybrid Engine | Trajectory 怎样传输？训练权重怎样更新到推理端？ |
@@ -44,7 +44,7 @@ RLinf 将分布式执行拆成几个相互配合的抽象：**Runner** 负责训
 
 ### 配置层不只是保存超参数
 
-一次运行通常从 \`examples/\` 下的脚本与 Hydra YAML 开始，经由 \`rlinf/config.py\` 完成默认值补全、参数推导和兼容性校验。常见配置域包含 \`cluster\`、\`runner\`、\`algorithm\`、\`actor\`、\`rollout\`、\`inference\`、\`reward\`、\`env\`、\`agentloop\` 等。
+一次运行通常从 `examples/` 下的脚本与 Hydra YAML 开始，经由 `rlinf/config.py` 完成默认值补全、参数推导和兼容性校验。常见配置域包含 `cluster`、`runner`、`algorithm`、`actor`、`rollout`、`inference`、`reward`、`env`、`agentloop` 等。
 
 源码入口：[rlinf/config.py](https://github.com/RLinf/RLinf/blob/main/rlinf/config.py)。
 
@@ -52,7 +52,7 @@ RLinf 将分布式执行拆成几个相互配合的抽象：**Runner** 负责训
 
 ### Cluster 与 ComponentPlacement
 
-\`Cluster\` 负责和 Ray 运行时、节点信息以及硬件资源衔接；\`ComponentPlacement\` 则将逻辑角色映射到实际资源。原文提到了几种典型部署取舍：
+`Cluster` 负责和 Ray 运行时、节点信息以及硬件资源衔接；`ComponentPlacement` 则将逻辑角色映射到实际资源。原文提到了几种典型部署取舍：
 
 - **COLLOCATED**：不同阶段可以复用相同 GPU，在显存管理和执行切换上承担额外约束。
 - **DISAGGREGATED**：训练和 Rollout 可分离部署，便于独立扩展，但需要处理数据传输与参数同步。
@@ -65,7 +65,7 @@ RLinf 将分布式执行拆成几个相互配合的抽象：**Runner** 负责训
 
 一个 Worker 可以代表 FSDP Rank、Rollout Engine、Env 实例或 Reward 计算单元。WorkerGroup 管理同类 Worker 的创建、初始化、执行与停止，常见生命周期可以概括为：
 
-\`create_group()\` → \`launch()\` → 计算 Rank Placement → 创建远程 Worker → \`init_worker()\` → 任务执行 → \`stop()\`。
+`create_group()` → `launch()` → 计算 Rank Placement → 创建远程 Worker → `init_worker()` → 任务执行 → `stop()`。
 
 这条抽象解决的是**分布式计算实体如何被管理**，而不是一个 Trajectory 应包含哪些字段。
 
@@ -73,7 +73,7 @@ RLinf 将分布式执行拆成几个相互配合的抽象：**Runner** 负责训
 
 在 RL Pipeline 中，Rollout 可能逐条产生轨迹，Reward 可能异步打分，而 Actor 则需要按 Batch 或 Microbatch 消费数据。如果各 Worker 全部采用相互直接调用，就会把业务依赖和通信拓扑紧密绑定。
 
-RLinf 的 \`Channel\` 提供数据写入、读取和路由等机制，可以管理 Producer / Consumer 关系，并按配置处理异步读写和背压（Backpressure）。具体 API 与行为参见 [Channel 源码](https://github.com/RLinf/RLinf/blob/main/rlinf/scheduler/channel/channel.py)。
+RLinf 的 `Channel` 提供数据写入、读取和路由等机制，可以管理 Producer / Consumer 关系，并按配置处理异步读写和背压（Backpressure）。具体 API 与行为参见 [Channel 源码](https://github.com/RLinf/RLinf/blob/main/rlinf/scheduler/channel/channel.py)。
 
 **重要的是，Channel 解耦了进程通信，但并没有消除数据契约。** Rollout 产生的 trajectory、token masks、logprobs、reward、group mapping 必须与 Actor / 算法实现的输入 Schema 一致，否则即使通信成功也可能得到错误的 Loss。
 
@@ -93,7 +93,7 @@ Channel 也不等于一个完整的模型权重同步系统；模型参数由 Hy
 
 多轮 Agent 训练不是简单地把一个 Prompt 的 Response 长度延长。一个模型可能生成 Tool Call，环境返回观察结果，模型再继续生成，直到满足终止条件。轨迹的 Turn 数和 Token 长度都是动态的。
 
-AgentLoop 需要保留 Tool Observation、动作、Token Mask、轨迹边界及 Group 关系。对这种可变形状的 Batch，动态 Packing 与 Loss Mask 直接影响训练正确性。原始笔记定位的主要阅读对象包括 Agent Runner、Agent Loop 与 MA 系列 Actor Worker；具体实现按所使用的版本核对。
+AgentLoop 需要保留 Tool Observation、动作、Token Mask、轨迹边界及 Group 关系。对这种可变形状的 Batch，动态 Packing 与 Loss Mask 直接影响训练正确性。对应的阅读对象包括 Agent Runner、Agent Loop 与 MA 系列 Actor Worker；具体路径与行为应按所使用的版本核对。
 
 ### Embodied：环境成为独立执行单元
 
@@ -118,8 +118,8 @@ AgentLoop 需要保留 Tool Observation、动作、Token Mask、轨迹边界及 
 
 如果目标是实现某项 RL Infra 功能，从**实际入口脚本**向内追踪，往往比先读遍全部目录更有效。
 
-1. 在 \`examples/\` 中确定对应任务及 YAML，识别配置和硬件资源假设。
-2. 阅读 [Runner](https://github.com/RLinf/RLinf/tree/main/rlinf/runners) 的 \`run()\`，找出训练 step 的实际阶段顺序。
+1. 在 `examples/` 中确定对应任务及 YAML，识别配置和硬件资源假设。
+2. 阅读 [Runner](https://github.com/RLinf/RLinf/tree/main/rlinf/runners) 的 `run()`，找出训练 step 的实际阶段顺序。
 3. 确认 Runner 创建了哪些 WorkerGroup，以及它们的 Rank 与 Placement。
 4. 沿 [Channel](https://github.com/RLinf/RLinf/tree/main/rlinf/scheduler/channel) 检查生产、读取、Batch Schema 与背压行为。
 5. 进入 [Actor / Rollout Worker](https://github.com/RLinf/RLinf/tree/main/rlinf/workers)，核对 Logprob、Loss、Optimizer 和模型版本。
