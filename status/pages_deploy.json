@@ -8,11 +8,15 @@
     "article_original_title": true,
     "article_reading_layout": true,
     "svg_http_status": 200,
-    "svg_is_vector": true
+    "svg_is_vector": true,
+    "transferqueue_http_status": 200,
+    "transferqueue_article_present": true,
+    "transferqueue_figure_count": 9,
+    "transferqueue_svg_vector": true
   },
-  "run_id": "45141612804",
-  "source_sha": "f33329c708262bd045b64d63359c6f1a04c0e86d",
+  "run_id": "45141724449",
+  "source_sha": "aa4fd9561f515666283cdbe2d07f6ee1481ba11f",
   "build": "success",
-  "deploy": "cancelled",
-  "result": "failure"
+  "deploy": "success",
+  "result": "success"
 }
