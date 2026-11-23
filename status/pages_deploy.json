@@ -11,12 +11,12 @@
     "svg_is_vector": true,
     "transferqueue_http_status": 200,
     "transferqueue_article_present": true,
-    "transferqueue_figure_count": 9,
+    "transferqueue_figure_count": 4,
     "transferqueue_svg_vector": true
   },
-  "run_id": "45142882101",
-  "source_sha": "5b5f30e8c06b8676482cb39d2005d5954e70bf45",
-  "build": "cancelled",
-  "deploy": "cancelled",
-  "result": "failure"
+  "run_id": "45142962737",
+  "source_sha": "f1496de5995a38ddb6474ae1b29ed9c9b4e4b31b",
+  "build": "success",
+  "deploy": "success",
+  "result": "success"
 }
