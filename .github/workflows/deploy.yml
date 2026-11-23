@@ -66,8 +66,25 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
-          import json, os
+          import json, os, time, urllib.request
+          live = {"checked": False, "page_kind": "unreachable"}
+          for attempt in range(8):
+            try:
+              req = urllib.request.Request("https://quan-yi-ai.github.io/?check=" + os.environ["RUN_ID"], headers={"User-Agent": "ASB-Deployment-Check"})
+              with urllib.request.urlopen(req, timeout=12) as response:
+                html = response.read(200000).decode("utf-8", errors="replace")
+                live = {
+                  "checked": True,
+                  "http_status": response.status,
+                  "page_kind": "vitepress" if 'vitepress' in html.lower() and 'AI Systems' in html else ("readme" if "本地预览" in html and "docs:dev" in html else "other"),
+                  "has_home_hero": "asb-hero" in html,
+                }
+              if live["page_kind"] == "vitepress": break
+            except Exception as exc:
+              live = {"checked": False, "page_kind": "unreachable", "error_type": type(exc).__name__}
+            time.sleep(5)
           result = {
+            "live_site": live,
             "run_id": os.environ["RUN_ID"],
             "source_sha": os.environ["SOURCE_SHA"],
             "build": os.environ["BUILD_RESULT"],
