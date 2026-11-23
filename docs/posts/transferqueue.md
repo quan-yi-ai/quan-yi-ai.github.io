@@ -33,10 +33,7 @@ TransferQueue 解决的不只是“把 Tensor 从 A 传到 B”的问题。它�
 
 成本上：分离式架构有可能将RL框架作为一个顶层的调度模块，从而复用已有训推集群，并利用异构计算资源进行后训练，从而降低开销。
 
-分离式架构的挑战：
-
-1.需要细化数据管理进行micro batch划分
-2.on policy
+分离式架构的挑战不只有节点间传输，还包括把全局样本组织为能够立即消费的 Microbatch，以及对 On-policy 程度和策略版本差异进行管理。
 
 
 ## 二、TransferQueue 架构与样本读写
@@ -94,14 +91,14 @@ TransferQueue：一个具有全景视角、流式调度能力的数据系统
 
 ## 三、数据流调度与算法编排
 
-基于TransferQueue这类集中式数据管理组件，算法主控可以采用一种DataFlow范式：
+基于 TransferQueue 这类具有全局 Metadata 视角的数据管理组件，算法主控可以采用 DataFlow 范式：
 
-1.异步启动各个RL计算任务，这些任务将根据自身计算情况决定是否从TransferQueue中读取数据
+1. 异步启动各个 RL 计算任务，让它们按自身进度尝试消费所需字段。
+2. 把第一个 Global Batch 的 Prompts 写入 TransferQueue。
+3. 当对应样本的输入字段就绪时，各任务读取数据、执行计算，并写回新产生的字段；Controller 维护生产与消费状态。
+4. 主控在当前 Global Batch 的训练阶段结束后记录指标、逐出旧样本，并加入下一轮 Prompts，继续推进迭代。
 
-2.将第一个GlobalBatch数据（prompts）送入TransferQueue系统
-
-1. 各 RL 任务在所需字段就绪后从 TransferQueue 读取输入并开始计算，再写回各自产出的字段。主控负责启动任务和推进迭代，字段的就绪状态由 TransferQueue 跟踪。
-4.算法主控检测到当前GlobalBatch已经全部训练结束，记录Metric、逐出TransferQueue中的旧数据并将新prompts放入系统，开启下一个Iteration。
+这种设计并不意味着完全不需要算法层同步：Iteration 边界、策略版本以及回收时机仍然需要由上层明确控制。
 
 <figure class="asb-figure asb-figure--cover">
   <button class="asb-zoom-trigger" type="button" aria-label="放大技术图：DataFlow 方式让计算任务由字段就绪状态驱动"><img src="/diagrams/tq-figure-4.svg" alt="DataFlow 方式让计算任务由字段就绪状态驱动" loading="lazy" /></button>
@@ -110,9 +107,9 @@ TransferQueue：一个具有全景视角、流式调度能力的数据系统
 
 StreamRL、AReal 等方向也关注流式 Rollout 数据交付。与仅讨论 Rollout → Trainer 传输相比，TransferQueue 进一步强调对样本字段就绪、任务消费状态和不同计算阶段的数据依赖进行统一管理；各项目的实际能力仍应以所使用的版本和实现为准。
 
-在TransferQueue系统上进行封装抽象成PyTorch Dataloader，从而可以将其作为一个迭代器使用，无需感知其内部的实现逻辑。
+将 TransferQueue 读取逻辑封装成 PyTorch DataLoader / Iterator 接口后，训练端可以迭代获取 Microbatch，而无需直接处理 Controller 与 Storage Backend 的内部协议。
 
-对于训练任务，这一DataLoader可以直接送至Megatron后端中，
+例如，对接 Megatron 训练后端时，上层消费的仍是符合训练逻辑的 Batch，底层则负责按需选样、路由与装配数据。
 
 <figure class="asb-figure asb-figure--cover">
   <button class="asb-zoom-trigger" type="button" aria-label="放大技术图：通过 DataLoader 将流式样本组织为训练微批次"><img src="/diagrams/tq-figure-5.svg" alt="通过 DataLoader 将流式样本组织为训练微批次" loading="lazy" /></button>
@@ -121,12 +118,13 @@ StreamRL、AReal 等方向也关注流式 Rollout 数据交付。与仅讨论 Ro
 
 TransferQueue 使用 Ray 承载部分生命周期管理和分布式组件协作。理解整体性能时，需要区分 Ray 层的启动与发现开销、Controller 的 Metadata 热路径，以及 Storage Backend 的 Payload 传输成本。
 
-首先我们来看数据写入过程。put_experience函数包装了前面所说的三个过程：
+以写入经验数据为例，`put_experience` 可以从概念上拆成三个步骤（具体接口与调用顺序以代码版本为准）：
 
-1. 将Batch数据拆分为Sample粒度
-2. 向该任务对应的Controller发送请求，获取Metadata
-3. 根据Metadata，将实际数据写入到底层分布式存储引擎中
-而在Controller中，我们提供了一个负载均衡接口，在读请求到来时可以根据所指定的负载均衡策略来提高训练效率。例如，verl中就实现了一个DP负载均衡，通过平衡每路DP上所拿到的Token总数来避免相互等待。
+1. 将 Batch 数据按 Sample 粒度整理。
+2. 与 Controller 交互，确定样本索引与 Metadata。
+3. 根据 Metadata 选择存储位置，把实际数据交给分布式 Storage Backend。
+
+Controller 还可以通过采样 / 负载均衡策略，在读请求到来时可以根据所指定的负载均衡策略来提高训练效率。例如，在需要处理变长 Response 的场景中，可以按 Token 工作量分配给不同 DP Worker，以减少部分 Worker 长时间等待；具体是否启用及其收益需要结合所使用的框架实现验证。
 
 
 ## 四、策略版本与一步异步
@@ -148,12 +146,7 @@ TransferQueue 使用 Ray 承载部分生命周期管理和分布式组件协作�
 比较两个后端时，重点看样本存放在哪一层、跨节点如何传输，以及数据进入训练设备前经过哪些拷贝。
 
 
-### 阅读路线
-
-先看样本字段和 StorageManager 接口，再对照两个后端的读写路径。随后讨论 RDMA、零拷贝与性能排查，最后区分样本存储与 TMS 显存卸载，并给出源码阅读路径。
-
-
-### 5.1 样本字段与存储范围
+### 样本字段与存储范围
 
 以 GRPO / PPO 为例，推理侧先从 Prompt 采样 Response，计算或收集 Reward、Logprobs 等数据，训练侧再据此计算 Advantage、Loss、梯度并更新参数。在训推分离或异步运行时，生产和消费数据的进程、设备、甚至机器不同；这时仅靠某个 Python 进程中的列表，不足以表达全局样本生命周期。
 
@@ -165,7 +158,7 @@ TransferQueue 使用 Ray 承载部分生命周期管理和分布式组件协作�
 这里的“存储”不是保存模型权重或 Adam 优化器状态，而是保存经验样本（experience）及字段：prompt、response、reward、logprobs、mask 等。一个样本可能被多个阶段逐步补齐字段，训练端需要知道哪些字段已就绪。
 
 
-### 5.2 StorageManager 与可替换后端
+### StorageManager 与可替换后端
 
 上文的读写流程以元数据连接调度与实际数据传输。数据平面通过 StorageManager 封装后端差异，并提供 put_data、get_data 和 clear_data 等操作。
 
@@ -185,7 +178,7 @@ class StorageManager:  # 接口形状示意，签名以源码版本为准
 同一套控制逻辑可以选择不同 Backend。SimpleStorage、MooncakeStore 并非互相对立的 RL 算法，而是针对不同部署条件实现的可替换数据承载方案。项目还列出了 Yuanrong、RayRDT 等选择。
 
 
-### 5.3 SimpleStorage 的数据路径
+### SimpleStorage 的数据路径
 
 SimpleStorage 是 TransferQueue 默认的基础 CPU 内存存储后端。它以多个 SimpleStorageUnit 组织样本数据，AsyncSimpleStorageManager 负责协调；Storage Unit 可分布在不同 Ray 节点上。底层配置说明其基于 ZMQ 的内存通信，重点在易用和较少的额外依赖，而不是承诺完全零拷贝。
 
@@ -203,7 +196,7 @@ SimpleStorage 是 TransferQueue 默认的基础 CPU 内存存储后端。它以�
 - 限制：数据主要落在 CPU DRAM；跨节点传输、序列化和多次 Host↔GPU 拷贝可能成为吞吐瓶颈。
 - 不要混淆：SimpleStorage 叫 Simple，不代表只有单机一个 Python dict；它可以使用多个分布式 Storage Unit。
 
-### 5.4 MooncakeStore 的数据路径
+### MooncakeStore 的数据路径
 
 MooncakeStore 是 TransferQueue 的高性能 KV 型存储 Backend，支持层次化存储及可配置的 TCP/RDMA 数据传输。它通常需要额外的 Mooncake 软件组件、元数据协调服务、内存段配置以及网络能力。文档将其标为 beta，具体接口和配置应以所用版本为准。
 
@@ -231,7 +224,7 @@ backend:
 这是用于理解的配置摘录，不保证可直接运行。特别是协议默认为 TCP 的配置示例中，不能仅凭启用了 MooncakeStore 就宣称正在使用 RDMA；开启 GPU Direct RDMA 还要求支持它的 GPU/NIC 与正确初始化。
 
 
-### 5.5 RDMA、零拷贝与 GPUDirect RDMA
+### RDMA、零拷贝与 GPUDirect RDMA
 
 <div class="asb-table-kicker">RDMA、零拷贝与 GPUDirect 的区别</div>
 
@@ -260,7 +253,7 @@ TransferQueue 的 Mooncake GDR 文档明确指出：GDR 是可选路径，依赖
 | 性能结论 | 需结合实测 | 不能仅凭后端名称断言一定更快 |
 
 
-### 6.1 性能验证方法
+### 性能验证方法
 
 不要只比“成功启动”或“某一段网络带宽”。建议固定模型、采样数量、响应长度、卡数、节点与网络，观测：Rollout→Trainer 交付延迟（p50/p95）、单位时间可交付样本数、CPU DRAM 峰值、GPU 占用、序列化耗时、网络吞吐和 Trainer 等待数据的空闲时间。还要区分冷启动与稳态，避免把元数据服务启动时间混进每批传输耗时。
 
@@ -313,7 +306,7 @@ verl TransferQueue 文档：[github.com/verl-project/verl/blob/main/docs/data/tr
 
 Relax Selective Offload PR #85：[github.com/redai-studio/Relax/pull/85](https://github.com/redai-studio/Relax/pull/85)
 
-说明：所有示意图为教学绘制，并非抓取的真实 Profiling 结果。吞吐、延迟和零拷贝优势必须以实际环境测量为准；本文没有虚构具体加速倍数。
+这些架构图用于解释数据流与组件边界，不代表运行时 Profiling 结果；关于吞吐、延迟和零拷贝的结论，应以具体设备与部署条件下的测试为准。
 
 
 ## 相关专题：控制面的 Rust 重构
