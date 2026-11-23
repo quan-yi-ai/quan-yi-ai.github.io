@@ -23,24 +23,24 @@ pageClass: asb-landing
     <div class="asb-orbit" aria-hidden="true">
       <svg viewBox="0 0 520 440" xmlns="http://www.w3.org/2000/svg">
         <defs>
-          <radialGradient id="core-glow"><stop stop-color="#4fd8aa" stop-opacity=".35"/><stop offset="1" stop-color="#4fd8aa" stop-opacity="0"/></radialGradient>
-          <linearGradient id="signal-stroke" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#77e6c2"/><stop offset="1" stop-color="#367a96"/></linearGradient>
+          <radialGradient id="core-glow"><stop stop-color="#83f3a8" stop-opacity=".35"/><stop offset="1" stop-color="#83f3a8" stop-opacity="0"/></radialGradient>
+          <linearGradient id="signal-stroke" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#83f3a8"/><stop offset="1" stop-color="#349b6c"/></linearGradient>
         </defs>
         <circle cx="260" cy="220" r="190" fill="url(#core-glow)"/>
-        <circle cx="260" cy="220" r="139" fill="none" stroke="#629e99" stroke-opacity=".27"/>
-        <circle cx="260" cy="220" r="99" fill="none" stroke="#629e99" stroke-opacity=".35" stroke-dasharray="3 8"/>
-        <circle cx="260" cy="220" r="57" fill="none" stroke="#77e6c2" stroke-opacity=".55"/>
+        <circle cx="260" cy="220" r="139" fill="none" stroke="#619b76" stroke-opacity=".27"/>
+        <circle cx="260" cy="220" r="99" fill="none" stroke="#619b76" stroke-opacity=".35" stroke-dasharray="3 8"/>
+        <circle cx="260" cy="220" r="57" fill="none" stroke="#83f3a8" stroke-opacity=".55"/>
         <ellipse cx="260" cy="220" rx="214" ry="87" transform="rotate(-36 260 220)" fill="none" stroke="url(#signal-stroke)" stroke-opacity=".55"/>
-        <ellipse cx="260" cy="220" rx="206" ry="80" transform="rotate(44 260 220)" fill="none" stroke="#529abb" stroke-opacity=".4"/>
-        <path d="M77 220H443 M260 37V403" stroke="#69bdad" stroke-opacity=".12" stroke-dasharray="3 10"/>
-        <g stroke="#77e6c2" stroke-opacity=".75" fill="#0a2222">
-          <circle cx="260" cy="220" r="10" fill="#84edc9" stroke="none"/>
+        <ellipse cx="260" cy="220" rx="206" ry="80" transform="rotate(44 260 220)" fill="none" stroke="#55ab82" stroke-opacity=".4"/>
+        <path d="M77 220H443 M260 37V403" stroke="#80d9a0" stroke-opacity=".12" stroke-dasharray="3 10"/>
+        <g stroke="#83f3a8" stroke-opacity=".75" fill="#14251a">
+          <circle cx="260" cy="220" r="10" fill="#9ffab9" stroke="none"/>
           <circle cx="116" cy="128" r="7"/><circle cx="421" cy="143" r="6"/><circle cx="379" cy="318" r="7"/><circle cx="149" cy="331" r="6"/>
         </g>
-        <g fill="#95dac6" font-family="monospace" font-size="11" letter-spacing="1.2">
+        <g fill="#b2ebc3" font-family="monospace" font-size="11" letter-spacing="1.2">
           <text x="58" y="116">LEARN</text><text x="392" y="126">BUILD</text><text x="388" y="344">EXPLORE</text><text x="85" y="350">THINK</text>
         </g>
-        <path d="M260 195l15 25-15 25-15-25z" fill="none" stroke="#dbfff0" stroke-width="1.5"/>
+        <path d="M260 195l15 25-15 25-15-25z" fill="none" stroke="#e3ffe9" stroke-width="1.5"/>
       </svg>
       <span class="asb-orbit-label">IDEAS → SYSTEMS → INSIGHTS</span>
     </div>
