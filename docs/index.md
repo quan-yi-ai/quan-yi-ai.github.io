@@ -60,6 +60,7 @@ pageClass: asb-landing
   <section class="asb-section asb-featured">
     <div class="asb-kicker">02 / Selected writing</div>
     <div class="asb-section-head"><div><h2>最新文章</h2><p class="asb-description">技术文章正在陆续整理、校对与发布。</p></div><a class="asb-more" href="/posts/">全部文章 ↗</a></div>
+    <a class="asb-article" href="/posts/ray-distributed-framework"><div><span class="asb-article-category">Distributed Systems</span><h3>Ray分布式计算框架</h3><p>从 Task、Actor、ObjectRef 出发，理解 Ray 集群、调度、vLLM 和排障路径。</p></div><span class="asb-article-arrow">↗</span></a>
     <a class="asb-article" href="/posts/transferqueue"><div><span class="asb-article-category">RL Infrastructure / Distributed Systems</span><h3>TransferQueue</h3><p>从训推分离到样本状态、控制面与数据面，再到 SimpleStorage 和 MooncakeStore 的数据路径。</p></div><span class="asb-article-arrow">↗</span></a>
     <a class="asb-article" href="/posts/transferqueue-python-cpp-rust"><div><span class="asb-article-category">Systems / RL Infrastructure</span><h3>从TransferQueue重构理解python、cpp、Rust</h3><p>从高频元数据控制面到可插拔传输层，理解 Python、Rust 与系统工程之间的边界。</p></div><span class="asb-article-arrow">↗</span></a>
     <a class="asb-article" href="/posts/transformer-parallel-attention"><div><span class="asb-article-category">Systems / AI Infrastructure · Featured</span><h3>并行方式</h3><p>Transformer 并行方式与 Attention 实现：从单卡计算出发，沿着张量形状理解并行策略与通信。</p></div><span class="asb-article-arrow">↗</span></a>
