@@ -168,7 +168,7 @@ SimpleStorage 是 TransferQueue 常用的基础存储后端，经典路径以 CP
 ##### 适用场景与瓶颈
 
 - 优点：依赖相对少、部署与调试成本低；很适合本地调试、功能验证和初期分布式训练。
-- 限制：数据主要落在 CPU DRAM；跨节点传输、序列化和多次 Host↔GPU 拷贝可能成为吞吐瓶颈。
+- 限制：经典内存路径主要使用 CPU DRAM；跨节点传输、序列化和 Host↔GPU 拷贝可能成为吞吐瓶颈，启用可选 SSD 路径时还需分析磁盘 I/O。
 - 不要混淆：SimpleStorage 叫 Simple，不代表只有单机一个 Python dict；它可以使用多个分布式 Storage Unit。
 
 ### MooncakeStore：分层与远程传输
@@ -179,7 +179,6 @@ MooncakeStore 更像一个可远程访问的共享数据层：写入方以 Key �
 
 
 #### 配置示意与必要条件
-
 
 ```yaml
 backend:
@@ -205,10 +204,6 @@ backend:
 | 重点核对 | CPU 拷贝、序列化、网络瓶颈 | RDMA/GDR 是否真的启用、注册与缓冲区开销 |
 | 性能结论 | 需结合实测 | 不能仅凭后端名称断言一定更快 |
 
-
-### 性能验证方法
-
-不要只比“成功启动”或“某一段网络带宽”。建议固定模型、采样数量、响应长度、卡数、节点与网络，观测：Rollout→Trainer 交付延迟（p50/p95）、单位时间可交付样本数、CPU DRAM 峰值、GPU 占用、序列化耗时、网络吞吐和 Trainer 等待数据的空闲时间。还要区分冷启动与稳态，避免把元数据服务启动时间混进每批传输耗时。
 
 选择后端不能仅看“是否支持 RDMA”。需要结合真实的字段类型、单次 Payload 大小、并发量、网络资源、部署维护成本和训练端的等待时间。
 
@@ -253,7 +248,7 @@ TransferQueue 的 Mooncake GDR 文档明确指出：GDR 是可选路径，依赖
 | 5 | [`simple_storage.py`](https://github.com/Ascend/TransferQueue/blob/main/transfer_queue/storage/simple_storage.py) | 字段值如何按 Index 真正写入和取回？ |
 | 6 | [`config.yaml`](https://github.com/Ascend/TransferQueue/blob/main/transfer_queue/config.yaml) | 实际使用何种 Backend、协议和内存选项？ |
 
-**阅读时要注意版本边界。** 这些路径和行为根据当前检索到的 GitHub 实现整理；未来重构可能使 Controller 的语言、模块位置和部分接口发生变化。项目代码的提交版本和运行配置决定实际行为。
+**阅读时要注意版本边界。** 这些路径和行为根据本次查阅的 GitHub 默认分支实现整理；未来重构可能使 Controller 的语言、模块位置和部分接口发生变化。项目代码的提交版本和运行配置决定实际行为。
 
 ## 八、结论：TransferQueue 解决了什么，没有解决什么？
 
