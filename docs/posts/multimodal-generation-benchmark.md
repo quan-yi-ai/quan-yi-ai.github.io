@@ -18,7 +18,7 @@ lastUpdated: false
 
 多模态生成 Pipeline 可能同时包含自回归（Autoregressive）Token 生成、DiT 迭代式去噪以及 VAE 图像解码。如果仅统计从请求进入 Server 到最终图片返回的时间，即使得到一个可靠的 p95，也仍然不知道瓶颈位于哪里。
 
-本文讨论的是**多阶段生成模型的 Benchmark 方法论**，而非对某个公开模型宣称已经实现特定优化收益。原始项目记录中含有待完成的 PR 占位编号和未填写的百分比，因此这里不复制任何未经验证的项目成果和数字。
+本文讨论的是**多阶段生成模型的 Benchmark 方法论**。各模型的阶段划分和数值结论需要以对应实现及真实测量为准，不能仅凭一个总耗时推断优化收益。
 
 ## 一、为什么文生图 Benchmark 需要拆分阶段？
 
@@ -44,7 +44,7 @@ lastUpdated: false
 
 ## 二、怎样正确测量 Stage Latency？
 
-一个常见错误是把 Python 中两次 \`time.time()\` 的差当作 GPU Kernel 时间。CUDA / NPU 等设备计算可能是异步执行的：CPU API 返回不等于设备已完成任务。
+一个常见错误是把 Python 中两次 `time.time()` 的差当作 GPU Kernel 时间。CUDA / NPU 等设备计算可能是异步执行的：CPU API 返回不等于设备已完成任务。
 
 测量方法应匹配要回答的问题：
 
