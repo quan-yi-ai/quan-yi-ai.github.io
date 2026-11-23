@@ -4,6 +4,7 @@
 
 ## 全部文章
 
+- **[SGLang 服务启动日志详解：从权重加载到 CUDA Graph 与 KV Cache](/posts/sglang-startup-log-analysis)** — 基于一次真实单卡启动记录，拆解权重、KV Pool、Graph 与离线加载排障。
 - **[多模态文生图性能基准：如何测量 AR、DiT 与 VAE？](/posts/multimodal-generation-benchmark)** — 分阶段 Profiler、负载 Sweep、端到端延迟与可复现 A/B 测试。
 - **[RL-Kernel：MoE Router 的训推数值一致性如何验证？](/posts/rlkernel-moe-router-consistency)** — 确定性、Batch 不变性、CPU Oracle 与跨引擎首差分定位。
 - **[投机解码：从无损验证到 EAGLE、MTP 与并行草稿](/posts/speculative-decoding-guide)** — 接受/拒绝采样、草稿器设计和性能模型。
