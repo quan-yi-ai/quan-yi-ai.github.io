@@ -68,7 +68,7 @@ r(x)\propto\max(p(x)-q(x),0)
 
 ## 四、不同草稿器的设计空间
 
-原始笔记中的主要方法可以沿两条维度比较：**草稿 Token 之间是否显式建模依赖**，以及**一次草稿计算能产生多少候选**。
+主要草稿器方法可以沿两条维度比较：**草稿 Token 之间是否显式建模依赖**，以及**一次草稿计算能产生多少候选**。
 
 | 方案 | 主要思路 | 典型取舍 |
 | --- | --- | --- |
@@ -136,4 +136,4 @@ DSpark 在此类并行 Draft 骨架上增加 Markov 风格的依赖修正和用�
 
 [Speculative Decoding 原始论文](https://arxiv.org/abs/2211.17192) · [vLLM Speculative Decoding](https://docs.vllm.ai/en/stable/features/speculative_decoding/) · [Speculators Algorithms](https://docs.vllm.ai/projects/speculators/en/latest/user_guide/algorithms/) · [DSpark](https://docs.vllm.ai/projects/speculators/en/latest/user_guide/algorithms/dspark/) · [EAGLE](https://arxiv.org/abs/2401.15077)
 
-本文将原有未完成的算法阅读笔记与公开文献中的通用验证机制重新组织。各方法的公开实现、性能与“无损”支持范围依赖版本和具体采样算法，不包含未经实测的加速数字。
+各方法的公开实现、性能与无损采样支持范围依赖具体版本和验证算法。本文没有给出未经实测的加速数字。
