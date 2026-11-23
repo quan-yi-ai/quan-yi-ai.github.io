@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 460" role="img" aria-labelledby="t d">
+<title id="t">Tensor Parallel Attention 的头维切分与输出归约</title>
+<desc id="d">输入 X 在两张 GPU 上可见。每张 GPU 负责一组完整 Attention Head，输出投影计算部分和，然后沿 TP 组进行跨卡求和。</desc>
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#0e1a23"/><stop offset="1" stop-color="#11252d"/></linearGradient>
+  <linearGradient id="edge" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#7ae3c1"/><stop offset="1" stop-color="#78b6e8"/></linearGradient>
+  <marker id="ar" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M1 1 L7 4 L1 7" fill="none" stroke="#7bdcc1" stroke-width="1.5"/></marker>
+  <pattern id="grid" width="26" height="26" patternUnits="userSpaceOnUse"><path d="M26 0H0V26" fill="none" stroke="#75aeb0" stroke-opacity=".08"/></pattern>
+</defs>
+<rect width="1100" height="460" rx="18" fill="url(#bg)"/>
+<rect width="1100" height="460" rx="18" fill="url(#grid)"/>
+<g font-family="system-ui, PingFang SC, sans-serif">
+  <text x="42" y="40" font-size="13" letter-spacing="2.1" fill="#7ae3c1">TENSOR PARALLELISM</text>
+  <text x="1058" y="40" font-size="13" text-anchor="end" fill="#8baeb7">SPLIT HEADS · REDUCE OUTPUT</text>
+  <text x="42" y="87" font-size="25" font-weight="730" fill="#eff9f7">Attention Head 沿 TP 维切分</text>
+  <text x="42" y="113" font-size="14" fill="#9cbdc3">每卡独立处理一组完整 Head，输出投影产生部分和；图示为两卡 TP、忽略 Bias 与残差。</text>
+</g>
+<rect x="42" y="186" width="153" height="58" rx="10" fill="#173e39" stroke="#64c9aa"/>
+<text x="118" y="209" text-anchor="middle" font-family="system-ui" font-size="18" font-weight="700" fill="#ddfff0">Input X</text>
+<text x="118" y="229" text-anchor="middle" font-family="monospace" font-size="13" fill="#9bdec8">[M, H]</text>
+<path d="M198 213H254M224 213V159H279M224 213V302H279" fill="none" stroke="#71d9b9" stroke-width="2.2" marker-end="url(#ar)"/>
+<g font-family="system-ui, PingFang SC, sans-serif">
+  <rect x="287" y="138" width="487" height="110" rx="13" fill="#162f3d" stroke="#588aaf" stroke-width="1.5"/>
+  <rect x="287" y="285" width="487" height="110" rx="13" fill="#162f3d" stroke="#588aaf" stroke-width="1.5"/>
+  <text x="309" y="164" fill="#98cbe9" font-size="15" font-weight="750">GPU 0</text>
+  <text x="309" y="310" fill="#98cbe9" font-size="15" font-weight="750">GPU 1</text>
+  <g fill="#1d5050" stroke="#69c8b3">
+    <rect x="309" y="180" width="117" height="43" rx="7"/>
+    <rect x="445" y="180" width="130" height="43" rx="7"/>
+    <rect x="591" y="180" width="156" height="43" rx="7"/>
+    <rect x="309" y="326" width="117" height="43" rx="7"/>
+    <rect x="445" y="326" width="130" height="43" rx="7"/>
+    <rect x="591" y="326" width="156" height="43" rx="7"/>
+  </g>
+  <g font-size="14" fill="#d9fff4" text-anchor="middle" font-weight="600">
+    <text x="367" y="206">QKV proj.</text><text x="510" y="206">Heads 0..k</text><text x="669" y="206">Wₒ partial</text>
+    <text x="367" y="352">QKV proj.</text><text x="510" y="352">Heads k..n</text><text x="669" y="352">Wₒ partial</text>
+  </g>
+  <g fill="none" stroke="#7ccab7" stroke-width="1.8" marker-end="url(#ar)">
+    <path d="M429 201H441"/><path d="M578 201H588"/>
+    <path d="M429 346H441"/><path d="M578 346H588"/>
+    <path d="M775 201H825V248"/><path d="M775 346H825V299"/>
+  </g>
+  <rect x="839" y="243" width="207" height="56" rx="11" fill="#234b3f" stroke="#75ddb9"/>
+  <text x="942" y="267" text-anchor="middle" font-size="17" font-weight="700" fill="#dcfff0">AllReduce</text>
+  <text x="942" y="285" text-anchor="middle" font-size="12" fill="#9cddc5">sum partial outputs</text>
+  <text x="287" y="422" font-size="12" fill="#8eb5bd">每卡完整 Head 数约 Nₕ/T，输出投影后的部分和对应相同输出位置。</text>
+</g>
+</svg>
