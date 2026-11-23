@@ -60,11 +60,11 @@ pageClass: asb-landing
   <section class="asb-section asb-featured">
     <div class="asb-kicker">02 / Selected writing</div>
     <div class="asb-section-head"><div><h2>最新文章</h2><p class="asb-description">技术原理、源码解析与工程实践。</p></div><a class="asb-more" href="/posts/">全部文章 ↗</a></div>
+    <a class="asb-article" href="/posts/sglang-startup-log-analysis"><div><h3>SGLang 服务启动日志详解</h3><p>从真实启动记录理解模型权重、KV Cache、CUDA Graph 与离线加载排障。</p></div><span class="asb-article-arrow">↗</span></a>
     <a class="asb-article" href="/posts/multimodal-generation-benchmark"><div><h3>多模态文生图性能基准</h3><p>从 AR、DiT 与 VAE 的阶段测量，推导可复现的 Benchmark 与 A/B 分析。</p></div><span class="asb-article-arrow">↗</span></a>
     <a class="asb-article" href="/posts/rlkernel-moe-router-consistency"><div><h3>RL-Kernel：MoE Router 的训推数值一致性如何验证？</h3><p>从确定性重放到 CPU Oracle 与跨引擎首差分定位，建立算子验证方法。</p></div><span class="asb-article-arrow">↗</span></a>
     <a class="asb-article" href="/posts/speculative-decoding-guide"><div><h3>投机解码：从无损验证到 EAGLE、MTP 与并行草稿</h3><p>Draft、Verify、接受-拒绝采样和不同草稿器的性能取舍。</p></div><span class="asb-article-arrow">↗</span></a>
     <a class="asb-article" href="/posts/pytorch-compiler-illustrated"><div><h3>图解 PyTorch 编译器</h3><p>从 Dynamo、Guard、AOTAutograd 到 Inductor、Triton 与 CUDA Graph。</p></div><span class="asb-article-arrow">↗</span></a>
-    <a class="asb-article" href="/posts/gpu-memory-vmm-tms-offload"><div><h3>GPU 显存管理</h3><p>理解 Caching Allocator、CUDA VMM、Torch Memory Saver 与 Selective Offload。</p></div><span class="asb-article-arrow">↗</span></a>
   </section>
   <div class="asb-divider"></div>
   <div class="asb-footer-note">AI Systems & Beyond　·　Keep asking better questions.</div>
