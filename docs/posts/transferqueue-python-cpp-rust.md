@@ -57,7 +57,7 @@ RFC #220 指出了几个具体瓶颈：
 
 [PR #221](https://github.com/Ascend/TransferQueue/pull/221) 和 [PR #223](https://github.com/Ascend/TransferQueue/pull/223) 分别涉及元数据线协议和 Rust Controller 的实现方向。
 
-### Ray、Python 与 Rust 的职责划分
+### Python Actor Shell 与 Rust 引擎的职责
 
 方案没有要求把整个 RL 框架改写成 Rust。Ray Actor 仍承担启动、发现和配置等工作；Rust 引擎通过 PyO3 集成在同一个 Actor 进程内，处理高频 ZMQ 元数据请求。
 
@@ -69,7 +69,7 @@ RFC #220 指出了几个具体瓶颈：
 
 这种设计不是“完全摆脱 Python”，而是**把最频繁的工作放在更合适的执行环境中**。自定义 Python Sampler 等能力仍需要考虑 GIL 和回调开销。PR #223 当前描述的 Rust Controller 初始实现以 SequentialSampler 为主，不能据此假设 RFC 中全部能力均已完成。
 
-### 紧凑状态表示与并发处理
+### Dense Row、Bitset 与并发请求处理
 
 RFC 和 PR 描述的 Rust 实现将活跃样本映射到较稠密的本地 Row，并以 u64 Bitset 维护状态。与按最大索引跨度扫描 Tensor 相比，位图操作可以利用按机器字批量处理的方式，并减少索引稀疏度对工作量的影响。
 
@@ -116,7 +116,7 @@ PR #223 提供了 Controller-only ZMQ Metadata RPC 的测试结果。在其报�
 
 PR #214 当前主要引入抽象并适配既有 ZMQ 路径；**不能把它当作 UCX、NIXL 或 RDMA 已经全部完成集成**。其报告的双机测试重点是验证抽象引入后没有明显性能退化，而非宣称新的传输协议已经获得加速收益。
 
-## 七　总结：语言选型与模块边界
+## 七　总结：控制面与数据面的架构取舍
 
 TransferQueue 的这两条路线形成了一个有用的对照：
 
