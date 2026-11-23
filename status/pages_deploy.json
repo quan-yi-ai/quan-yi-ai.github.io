@@ -40,9 +40,9 @@
       }
     }
   },
-  "run_id": "45147446557",
-  "source_sha": "e53176dbd019faffac82fe6aab3877150822fef0",
-  "build": "success",
-  "deploy": "success",
-  "result": "success"
+  "run_id": "45149643886",
+  "source_sha": "a775f8797848c28fd470b47f6b36412f525aab16",
+  "build": "cancelled",
+  "deploy": "cancelled",
+  "result": "failure"
 }
