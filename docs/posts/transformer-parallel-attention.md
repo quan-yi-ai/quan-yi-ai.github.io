@@ -65,9 +65,16 @@ $$
 
 T、P、D、C、G 分别表示 TP、PP、DP、CP、EP 的并行度。b 是 microbatch 的样本数。下表每行独立看，使用均匀切分，SP 是 Megatron 中与 TP 配合的用法。形状以每个 rank 为单位。
 
-::: warning 原文嵌入电子表格 1
-此处在飞书原文中为嵌入式电子表格。当前转换流程尚未取得表格单元格数据，暂时无法保证表格无损还原。可先[查看飞书原文](https://mcn1ijk3pml3.feishu.cn/wiki/Mujfwy0wsi0bjIkbReScJvhKn3M)。
-:::
+<div class="asb-table-kicker">原文嵌入表格 1 · 已恢复单元格数据</div>
+
+| 并行方式与切分轴 | 每个 rank 的局部对象 |
+| --- | --- |
+| DP · batch | [B / D, S, H] |
+| PP · block 层号 | 约 L / P 层；阶段边界激活 [b, S, H] |
+| TP · head 或特征 | Q、K、V [B, S, Nₕ / T, Dₕ]；FFN 中间 [B, S, F / T] |
+| SP · 部分激活的 token | 残差流与 Norm 等位置 [B, S / T, H] |
+| CP · 上下文 token | 本地 Q [B, S / C, Nₕ, Dₕ] |
+| EP · 专家编号 | 约 E / G 个专家；专家 e 的输入 [Tₑ, H] |
 
 ### 并行方式确定分工，具体切法可以变化
 
@@ -153,9 +160,14 @@ for Q_i in query_tiles(Q):
 
 Q、K、V 按 tile 搬到片上，分数和概率就地消费，避免把完整 [S, S] 写入 HBM。密集 Attention 仍有平方级计算。伪代码说明的是分块和归一化原则，实际 kernel 会改变循环顺序、并行方式和流水排程。
 
-::: warning 原文嵌入电子表格 2
-此处在飞书原文中为嵌入式电子表格。当前转换流程尚未取得表格单元格数据，暂时无法保证表格无损还原。可先[查看飞书原文](https://mcn1ijk3pml3.feishu.cn/wiki/Mujfwy0wsi0bjIkbReScJvhKn3M)。
-:::
+<div class="asb-table-kicker">原文嵌入表格 2 · 已恢复单元格数据</div>
+
+| 版本 | 主要改变 |
+| --- | --- |
+| FA1 | IO 分块与在线归一化，降低 HBM 流量。 |
+| FA2 | 改善线程块和 warp 的工作分配，减少非矩阵乘操作。 |
+| FA3 | 面向 Hopper，利用 TMA 和 Tensor Core 异步流水，支持 FP8 路径。 |
+| FA4 | 面向 Blackwell，联合设计算法和流水，使用指数近似等手段缓解计算单元增长不均衡。 |
 
 ### FlashAttention v1 到 v4 分别优化什么
 
@@ -215,9 +227,13 @@ Q、K、V 按 tile 搬到片上，分数和概率就地消费，避免把完整 
 | QP建立 | 建RDMA连接，端点就绪 | TCP |
 | RDMA传输 | 数据收发，kernel bypass |  |
 
-::: warning 原文嵌入电子表格 3
-此处在飞书原文中为嵌入式电子表格。当前转换流程尚未取得表格单元格数据，暂时无法保证表格无损还原。可先[查看飞书原文](https://mcn1ijk3pml3.feishu.cn/wiki/Mujfwy0wsi0bjIkbReScJvhKn3M)。
-:::
+<div class="asb-table-kicker">原文嵌入表格 3 · 已恢复单元格数据</div>
+
+| 项目 | 是什么 | 层级 |
+| --- | --- | --- |
+| LMCache | 独立的 KV Cache 管理层，挂在 vLLM/SGLang 外面 | 引擎外置的"存储中间件" |
+| Mooncake | 以 KVCache 为中心的分离式推理架构（PD 分离 + 分布式缓存池） | 集群级架构 |
+| HiCache | SGLang 内置的三级缓存模块 | 引擎内部机制 |
 
 - LMcache
 官方定位是面向LLM推理的KV cache的管理层，把KV cache从临时状态变成可复用、可持久存储、可跨引擎共享的东西。里面也是会做分层
