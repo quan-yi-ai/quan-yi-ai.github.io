@@ -18,6 +18,7 @@ export default defineConfig({
         { text: '技术文章', items: [
           { text: '文章索引', link: '/posts/' },
           { text: '并行方式', link: '/posts/transformer-parallel-attention' },
+          { text: '从TransferQueue重构理解python、cpp、Rust', link: '/posts/transferqueue-python-cpp-rust' },
           { text: 'AI & Machine Learning', link: '/posts/ai' },
           { text: 'Systems & Computing', link: '/posts/systems' },
           { text: 'Engineering', link: '/posts/engineering' },
