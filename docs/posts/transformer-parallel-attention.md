@@ -11,11 +11,9 @@ lastUpdated: false
 
 <div class="asb-story-header">
   <div class="asb-story-breadcrumb"><a href="/posts/">全部文章</a><span>/</span><span>Systems & Computing</span></div>
-  <div class="asb-editorial-heading"><span class="asb-pulse"></span>TECHNICAL NOTES <span class="asb-header-divider">/</span> PARALLEL COMPUTING</div>
   <h1 id="并行方式" tabindex="-1">并行方式</h1>
   <p class="asb-story-subtitle">Transformer 并行方式与 Attention 实现</p>
   <p class="asb-story-deck">从单卡的 Attention 与 FFN 计算出发，沿着层、样本、Token、Head、特征和专家等切分轴，逐步理解多卡执行、注意力算法与集合通信。</p>
-  <div class="asb-story-meta"><span>人工智能 × 计算系统</span><span class="asb-meta-dot"></span><span>深度技术笔记</span></div>
 </div>
 
 <figure class="asb-figure asb-figure--cover">
