@@ -134,6 +134,37 @@ jobs:
                 }
             except Exception as exc:
               live["editorial_pages"][key] = {"error": type(exc).__name__}
+          # Confirm every newly migrated public article is accessible.
+          migrated_slugs = [
+            "python-concurrency-runtime",
+            "python-functions-context",
+            "rlinf-architecture",
+            "minicpmo-45-omni-inference",
+            "rl-posttraining-frameworks",
+            "agentic-rl-infrastructure",
+            "gpu-memory-vmm-tms-offload",
+            "pytorch-compiler-illustrated",
+            "speculative-decoding-guide",
+            "rlkernel-moe-router-consistency",
+            "multimodal-generation-benchmark",
+          ]
+          live["migrated_articles"] = {}
+          for slug in migrated_slugs:
+            try:
+              article_url = "https://quan-yi-ai.github.io/posts/" + slug + "?review=" + os.environ["RUN_ID"]
+              with urllib.request.urlopen(urllib.request.Request(article_url, headers={"User-Agent":"ASB-Deployment-Check"}), timeout=20) as response:
+                body = response.read(700000).decode("utf-8", errors="replace")
+                live["migrated_articles"][slug] = {
+                  "status": response.status,
+                  "article_header": "asb-story-header" in body,
+                  "figures": body.count('class="asb-zoom-trigger"'),
+                }
+            except Exception as exc:
+              live["migrated_articles"][slug] = {"error": type(exc).__name__}
+          live["migrated_articles_all_ok"] = all(
+            x.get("status") == 200 and x.get("article_header")
+            for x in live["migrated_articles"].values()
+          )
           result = {
             "live_site": live,
             "run_id": os.environ["RUN_ID"],
