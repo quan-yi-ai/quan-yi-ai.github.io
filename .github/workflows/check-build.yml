@@ -1,4 +1,5 @@
 name: 博客构建校验
+# 执行首次完整网站编译
 
 on:
   workflow_dispatch:
