@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="420" viewBox="0 0 1100 420" role="img" aria-labelledby="title desc">
+<title id="title">从单卡 Transformer 到分布式并行</title>
+<desc id="desc">三阶段架构图：单卡执行 Attention 与 FFN，按 TP、PP、DP、SP、CP、EP 轴切分，再分配到四个 GPU 上。</desc>
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#0c1720"/><stop offset="1" stop-color="#102029"/></linearGradient>
+  <linearGradient id="edge" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#56e6b7"/><stop offset="1" stop-color="#75b9f0"/></linearGradient>
+  <linearGradient id="node" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#163a41"/><stop offset="1" stop-color="#122d35"/></linearGradient>
+  <pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="0.75" fill="#8bd0bd" opacity=".12"/></pattern>
+  <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M1 1L7 4L1 7" fill="none" stroke="#84e9c5" stroke-width="1.4"/></marker>
+</defs>
+<rect width="1100" height="420" rx="18" fill="url(#bg)"/>
+<rect width="1100" height="420" rx="18" fill="url(#dots)"/>
+<text x="42" y="42" font-family="system-ui, sans-serif" font-size="13" letter-spacing="2.6" fill="#6fe6bd">ARCHITECTURE OVERVIEW</text>
+<text x="1055" y="42" text-anchor="end" font-family="ui-monospace, monospace" font-size="12" fill="#7e9ba5">TRANSFORMER / DISTRIBUTED EXECUTION</text>
+<g font-family="system-ui, PingFang SC, sans-serif">
+<rect x="42" y="81" width="290" height="266" rx="15" fill="#142832" stroke="#41676a"/>
+<text x="64" y="111" font-size="14" fill="#7ee7c6" letter-spacing="1.4">01 / COMPUTE</text>
+<text x="64" y="144" font-size="22" fill="#e8f6f5" font-weight="700">单卡 Transformer</text>
+<rect x="66" y="177" width="242" height="50" rx="8" fill="#1c4a49" stroke="#509d8e"/>
+<text x="187" y="209" font-size="18" fill="#dbfdf0" text-anchor="middle" font-weight="600">Attention</text>
+<path d="M187 230V248" stroke="#80dac2" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="66" y="256" width="242" height="50" rx="8" fill="#1b3c54" stroke="#4a7998"/>
+<text x="187" y="288" font-size="18" fill="#e2f2ff" text-anchor="middle" font-weight="600">FFN</text>
+<text x="187" y="333" font-size="12" fill="#91aeb5" text-anchor="middle">Block × L</text>
+<path d="M349 214H392" stroke="url(#edge)" stroke-width="2.5" marker-end="url(#arrow)"/>
+<rect x="409" y="81" width="291" height="266" rx="15" fill="#142832" stroke="#41676a"/>
+<text x="431" y="111" font-size="14" fill="#7ee7c6" letter-spacing="1.4">02 / PARTITION</text>
+<text x="431" y="144" font-size="22" fill="#e8f6f5" font-weight="700">选择切分轴</text>
+<g font-size="18" font-weight="700" text-anchor="middle">
+<rect x="433" y="177" width="71" height="51" rx="8" fill="url(#node)" stroke="#438579"/><text x="468.5" y="209" fill="#c8ffea">TP</text>
+<rect x="519" y="177" width="71" height="51" rx="8" fill="url(#node)" stroke="#438579"/><text x="554.5" y="209" fill="#c8ffea">PP</text>
+<rect x="605" y="177" width="71" height="51" rx="8" fill="url(#node)" stroke="#438579"/><text x="640.5" y="209" fill="#c8ffea">DP</text>
+<rect x="433" y="242" width="71" height="51" rx="8" fill="url(#node)" stroke="#438579"/><text x="468.5" y="274" fill="#c8ffea">SP</text>
+<rect x="519" y="242" width="71" height="51" rx="8" fill="url(#node)" stroke="#438579"/><text x="554.5" y="274" fill="#c8ffea">CP</text>
+<rect x="605" y="242" width="71" height="51" rx="8" fill="url(#node)" stroke="#438579"/><text x="640.5" y="274" fill="#c8ffea">EP</text>
+</g>
+<text x="555" y="331" font-size="12" fill="#91aeb5" text-anchor="middle">模型 / 样本 / Token / 专家</text>
+<path d="M717 214H760" stroke="url(#edge)" stroke-width="2.5" marker-end="url(#arrow)"/>
+<rect x="777" y="81" width="281" height="266" rx="15" fill="#142832" stroke="#41676a"/>
+<text x="799" y="111" font-size="14" fill="#7ee7c6" letter-spacing="1.4">03 / EXECUTION</text>
+<text x="799" y="144" font-size="22" fill="#e8f6f5" font-weight="700">分布式执行</text>
+<g fill="#17394a" stroke="#5c9fba" stroke-width="1.4">
+<rect x="803" y="177" width="108" height="55" rx="8"/><rect x="924" y="177" width="108" height="55" rx="8"/>
+<rect x="803" y="245" width="108" height="55" rx="8"/><rect x="924" y="245" width="108" height="55" rx="8"/>
+</g>
+<g text-anchor="middle" fill="#ddf7ff" font-size="17" font-weight="600">
+<text x="857" y="211">GPU 0</text><text x="978" y="211">GPU 1</text><text x="857" y="279">GPU 2</text><text x="978" y="279">GPU 3</text>
+</g>
+<g stroke="#7fd9bd" stroke-width="2" fill="none"><path d="M912 205H923M912 272H923M857 233V244M978 233V244"/></g>
+<text x="917" y="331" font-size="12" fill="#91aeb5" text-anchor="middle">通信 · 调度 · 计算</text>
+</g>
+<line x1="42" y1="374" x2="1058" y2="374" stroke="#39616a" opacity=".55"/>
+<text x="42" y="400" font-family="ui-monospace, monospace" font-size="12" fill="#8baab4">Figure 01 · Conceptual mapping, not a device topology</text>
+<text x="1058" y="400" text-anchor="end" font-family="ui-monospace, monospace" font-size="12" fill="#8baab4">AI SYSTEMS &amp; BEYOND</text>
+</svg>
