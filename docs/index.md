@@ -59,11 +59,12 @@ pageClass: asb-landing
   <div class="asb-divider"></div>
   <section class="asb-section asb-featured">
     <div class="asb-kicker">02 / Selected writing</div>
-    <div class="asb-section-head"><div><h2>最新文章</h2><p class="asb-description">技术文章正在陆续整理、校对与发布。</p></div><a class="asb-more" href="/posts/">全部文章 ↗</a></div>
-    <a class="asb-article" href="/posts/ray-distributed-framework"><div><h3>Ray分布式计算框架</h3><p>从 Task、Actor、ObjectRef 出发，理解 Ray 集群、调度、vLLM 和排障路径。</p></div><span class="asb-article-arrow">↗</span></a>
-    <a class="asb-article" href="/posts/transferqueue"><div><span class="asb-article-category">RL Infrastructure / Distributed Systems</span><h3>TransferQueue</h3><p>从训推分离到样本状态、控制面与数据面，再到 SimpleStorage 和 MooncakeStore 的数据路径。</p></div><span class="asb-article-arrow">↗</span></a>
-    <a class="asb-article" href="/posts/transferqueue-python-cpp-rust"><div><span class="asb-article-category">Systems / RL Infrastructure</span><h3>从TransferQueue重构理解python、cpp、Rust</h3><p>从高频元数据控制面到可插拔传输层，理解 Python、Rust 与系统工程之间的边界。</p></div><span class="asb-article-arrow">↗</span></a>
-    <a class="asb-article" href="/posts/transformer-parallel-attention"><div><span class="asb-article-category">Systems / AI Infrastructure · Featured</span><h3>并行方式</h3><p>Transformer 并行方式与 Attention 实现：从单卡计算出发，沿着张量形状理解并行策略与通信。</p></div><span class="asb-article-arrow">↗</span></a>
+    <div class="asb-section-head"><div><h2>最新文章</h2><p class="asb-description">技术原理、源码解析与工程实践。</p></div><a class="asb-more" href="/posts/">全部文章 ↗</a></div>
+    <a class="asb-article" href="/posts/multimodal-generation-benchmark"><div><h3>多模态文生图性能基准</h3><p>从 AR、DiT 与 VAE 的阶段测量，推导可复现的 Benchmark 与 A/B 分析。</p></div><span class="asb-article-arrow">↗</span></a>
+    <a class="asb-article" href="/posts/rlkernel-moe-router-consistency"><div><h3>RL-Kernel：MoE Router 的训推数值一致性如何验证？</h3><p>从确定性重放到 CPU Oracle 与跨引擎首差分定位，建立算子验证方法。</p></div><span class="asb-article-arrow">↗</span></a>
+    <a class="asb-article" href="/posts/speculative-decoding-guide"><div><h3>投机解码：从无损验证到 EAGLE、MTP 与并行草稿</h3><p>Draft、Verify、接受-拒绝采样和不同草稿器的性能取舍。</p></div><span class="asb-article-arrow">↗</span></a>
+    <a class="asb-article" href="/posts/pytorch-compiler-illustrated"><div><h3>图解 PyTorch 编译器</h3><p>从 Dynamo、Guard、AOTAutograd 到 Inductor、Triton 与 CUDA Graph。</p></div><span class="asb-article-arrow">↗</span></a>
+    <a class="asb-article" href="/posts/gpu-memory-vmm-tms-offload"><div><h3>GPU 显存管理</h3><p>理解 Caching Allocator、CUDA VMM、Torch Memory Saver 与 Selective Offload。</p></div><span class="asb-article-arrow">↗</span></a>
   </section>
   <div class="asb-divider"></div>
   <div class="asb-footer-note">AI Systems & Beyond　·　Keep asking better questions.</div>
