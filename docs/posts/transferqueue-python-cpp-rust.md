@@ -16,7 +16,7 @@ lastUpdated: false
   <p class="asb-story-deck">为什么一个以 Python 为主的 RL 数据基础设施，会考虑用 Rust 重构高频控制路径，并为 SimpleStorage 引入可插拔的传输层？关键不只是语言运行速度，而是瓶颈位置、状态表示与模块边界。</p>
 </div>
 
-理解 Controller 重构之前，可以先阅读 [TransferQueue](/posts/transferqueue)，熟悉样本就绪状态、DataFlow 编排与存储后端的分工。
+TransferQueue 的基础架构、样本就绪状态与存储后端机制见 [《TransferQueue》](/posts/transferqueue)。
 
 在 RL 后训练系统中，Rollout、Reward、Training 等组件可能以不同速度运行。训练端需要从生产者持续获得可用样本，生产者又需要知道数据何时可消费。随着并发请求、样本数量和数据规模增加，**控制请求的处理效率**和**实际数据的搬运效率**可能分别成为瓶颈。
 
@@ -27,7 +27,7 @@ lastUpdated: false
   <figcaption>同一条数据管道中，控制元数据的流转与 Tensor Payload 的传输不是同一件事。</figcaption>
 </figure>
 
-## 一　先分清控制面和数据面
+## 一　TransferQueue 的控制面与数据面
 
 系统里有两类容易混淆的流量：
 
@@ -40,9 +40,9 @@ lastUpdated: false
 
 因此，**用 Rust 重写 Controller 不等于使用 RDMA 传 Tensor**，而给 SimpleStorage 增加可插拔传输接口，也不等于让 Controller 自动获得更高并发。
 
-## 二　Python Controller：瓶颈究竟从哪里来？
+## 二　Python Controller 的性能瓶颈
 
-最值得研究的问题不是“Python 慢不慢”，而是**每一次高频请求穿过了哪些热路径**。
+性能分析的起点是定位**高频请求实际经过的执行路径**，而非仅根据语言判断效率。
 
 RFC #220 指出了几个具体瓶颈：
 
@@ -53,11 +53,11 @@ RFC #220 指出了几个具体瓶颈：
 
 这说明潜在收益至少有三部分：**执行模型、数据结构、线协议**。即使不换语言，优化索引表示和轮询策略也可能带来收益；即使换成 C++ 或 Rust，若仍保留昂贵的扫描与锁竞争，也不能保证高吞吐。
 
-## 三　Rust Controller：把哪些事情移出 Python 热路径？
+## 三　Rust Controller 的热路径重构
 
 [PR #221](https://github.com/Ascend/TransferQueue/pull/221) 和 [PR #223](https://github.com/Ascend/TransferQueue/pull/223) 分别涉及元数据线协议和 Rust Controller 的实现方向。
 
-### 为什么保留 Ray 和 Python？
+### Ray、Python 与 Rust 的职责划分
 
 方案没有要求把整个 RL 框架改写成 Rust。Ray Actor 仍承担启动、发现和配置等工作；Rust 引擎通过 PyO3 集成在同一个 Actor 进程内，处理高频 ZMQ 元数据请求。
 
@@ -69,13 +69,13 @@ RFC #220 指出了几个具体瓶颈：
 
 这种设计不是“完全摆脱 Python”，而是**把最频繁的工作放在更合适的执行环境中**。自定义 Python Sampler 等能力仍需要考虑 GIL 和回调开销。PR #223 当前描述的 Rust Controller 初始实现以 SequentialSampler 为主，不能据此假设 RFC 中全部能力均已完成。
 
-### 关键差异不仅是 Rust，还有状态表示
+### 紧凑状态表示与并发处理
 
 RFC 和 PR 描述的 Rust 实现将活跃样本映射到较稠密的本地 Row，并以 u64 Bitset 维护状态。与按最大索引跨度扫描 Tensor 相比，位图操作可以利用按机器字批量处理的方式，并减少索引稀疏度对工作量的影响。
 
-这也是理解性能结果的关键：**如果新旧实现的数据结构、编解码与并发模型都不同，就不能把全部收益归因于“语言从 Python 换成 Rust”。**
+理解这组性能结果的关键在于：**如果新旧实现的数据结构、编解码与并发模型都不同，就不能把全部收益归因于“语言从 Python 换成 Rust”。**
 
-## 四　性能数据如何正确解读？
+## 四　Controller 性能测试与结果分析
 
 PR #223 提供了 Controller-only ZMQ Metadata RPC 的测试结果。在其报告的 **128 并发连接、Mixed Profile、Closed-loop** 场景下：
 
@@ -86,11 +86,11 @@ PR #223 提供了 Controller-only ZMQ Metadata RPC 的测试结果。在其报�
 
 这些数字来自该 PR 的性能报告，**不是独立复测，也不是端到端 RL 训练加速比**。测试还限定了机器、CPU 亲和性、ZMQ 请求类型、连接数、索引布局与延迟测量方式。
 
-为什么 Sparse 场景差异更大？根据实现说明，Python 路径的某些扫描成本依赖索引跨度，而 Rust 的 Dense Row / Bitset 设计更接近按活跃分区规模处理。因而这里比较的不只是语言性能，也包括**算法和状态结构的复杂度差异**。
+稀疏索引场景的吞吐差异更为明显。根据实现说明，Python 路径的某些扫描成本依赖索引跨度，而 Rust 的 Dense Row / Bitset 设计更接近按活跃分区规模处理。因而这里比较的不只是语言性能，也包括**算法和状态结构的复杂度差异**。
 
 如果后续要严谨分析，应补充单独消融：只换编码格式、只换状态结构、只换执行语言/并发模型时，吞吐与 P99 分别变化多少。当前公开的这些结果不足以精确拆分每一种改动的贡献。
 
-## 五　Python、C++、Rust：应该从什么角度比较？
+## 五　Python、C++ 与 Rust 的系统选型
 
 三种语言的讨论应该落到真实的组件边界，而不是做脱离工作负载的排行榜。
 
@@ -100,11 +100,11 @@ PR #223 提供了 Controller-only ZMQ Metadata RPC 的测试结果。在其报�
 | 需要关注 | CPU 热路径、对象与序列化开销、GIL 适用边界 | 内存与资源生命周期、并发安全维护成本 | 学习曲线、绑定/构建复杂度、异步与跨语言交互 |
 | 本案例中的角色 | 已存在的 Controller / Actor 外壳 | 值得作为选型对照，但没有同条件 Controller Benchmark | PR 中的原生 Controller 热路径 |
 
-**这篇文章目前不能证明 Rust 比 C++ 快。** 它只能说明 TransferQueue 选择了 Rust 作为该控制面重构方案的一部分，以及这一实现组合在 PR 测试条件下报告了怎样的性能。
+**上述测试不能证明 Rust 在相同工作负载下比 C++ 更快。** 它只能说明 TransferQueue 选择了 Rust 作为该控制面重构方案的一部分，以及这一实现组合在 PR 测试条件下报告了怎样的性能。
 
 判断语言是否合适，至少还要看：团队能否长期维护、依赖与构建能否稳定交付、FFI 是否侵入应用接口，以及多语言边界到底放在何处。
 
-## 六　数据面：为什么还要做 PayloadTransfer？
+## 六　数据面抽象与 PayloadTransfer
 
 另一个方向见 [RFC #208](https://github.com/Ascend/TransferQueue/issues/208) 与 [PR #214](https://github.com/Ascend/TransferQueue/pull/214)。它们关注 SimpleStorage 的 PUT / GET / UPDATE 如何不依赖某个固定网络后端。
 
@@ -116,14 +116,14 @@ PR #223 提供了 Controller-only ZMQ Metadata RPC 的测试结果。在其报�
 
 PR #214 当前主要引入抽象并适配既有 ZMQ 路径；**不能把它当作 UCX、NIXL 或 RDMA 已经全部完成集成**。其报告的双机测试重点是验证抽象引入后没有明显性能退化，而非宣称新的传输协议已经获得加速收益。
 
-## 七　回到系统设计：何时换语言，何时改架构？
+## 七　总结：语言选型与模块边界
 
 TransferQueue 的这两条路线形成了一个有用的对照：
 
 - **控制面重构**：高频请求集中在 Python 热路径，问题涉及串行处理、编解码和稀疏状态结构。解决思路是 Rust 引擎与数据结构、协议共同重构。
 - **数据面解耦**：业务逻辑绑定既有 ZMQ 通信路径，问题是后续扩展不同传输后端困难。解决思路是先定义可替换的接口，再在可靠的内存与完成语义下实现不同后端。
 
-由此可以归纳出一种分析基础设施性能问题的方法：先定位**控制面还是数据面**，再判断瓶颈来自**算法复杂度、数据表示、运行时并发还是通信带宽**，最后才决定用 Python、C++、Rust 或新的网络后端。
+基础设施性能问题可以沿以下顺序分析：先定位**控制面还是数据面**，再判断瓶颈来自**算法复杂度、数据表示、运行时并发还是通信带宽**，最后才决定用 Python、C++、Rust 或新的网络后端。
 
 对 RL 后训练基础设施而言，真正重要的是让高频调度、样本状态管理与大规模 Payload 传输各自有清晰的所有权和扩展边界。
 
