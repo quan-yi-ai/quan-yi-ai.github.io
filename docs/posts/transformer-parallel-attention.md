@@ -1,6 +1,6 @@
 ---
 title: 并行方式
-description: Transformer 并行方式与 Attention 实现：从单卡计算到 TP、PP、DP、CP、EP，深入理解 FlashAttention、PagedAttention、Ring Attention 和 NCCL。
+description: 从单卡 Transformer 的张量形状出发，推导 TP、DP、PP、SP、CP、EP 的切分与通信，以 8 GPU 示例串联 Ring/Tree Attention 和 NCCL 通信成本。
 sidebar: false
 aside: right
 outline: [2, 2]
@@ -138,8 +138,6 @@ DP 的基本形式是让每个副本拥有一套完整的逻辑模型，对不�
 
 ### Pipeline Parallel：按层分阶段
 
-
-
 PP 把连续的一组完整 block 放到每个阶段。在未叠加 TP、SP 或 CP 的例子里，阶段之间点对点传递形状 [b, S, H] 的 microbatch 激活。反向沿相反方向传激活梯度。多个 microbatch 可以同时在不同阶段运行。普通 DDP 的每个副本都跑全部 L 层，各自处理不同样本，反向后同步权重梯度。
 
 在 8 GPU 示例中，Stage 0 计算第 0–11 层，Stage 1 计算第 12–23 层。若暂时忽略 TP/SP 对阶段边界布局的影响，一个 Microbatch 的边界激活形状为 \([2,4096,4096]\)。使用 BF16，每次单向传输的数据量为：
@@ -178,9 +176,15 @@ EP 中 E 代表专家总数，Tₑ 代表路由到专家 e 的 token 数。若�
 
 因为 Softmax 的分母是对**全部可见 Key**计算的。各 GPU 只对自己的 Key 归一化，会得到不同的局部分母；它们的局部输出直接求和或取平均，一般不等于全局 Attention。
 
+可以用只有两个 Key 的例子看出差别：GPU 0 持有 \(s_0=0,v_0=0\)，GPU 1 持有 \(s_1=2,v_1=10\)。各 GPU 对自己的唯一 Key 做 Softmax，局部输出分别为 0 和 10；直接取平均得到 5。然而真正的全局输出是
+
+$
+O=\frac{e^0\cdot 0+e^2\cdot 10}{e^0+e^2}\approx 8.81.
+$
+
+因此，跨 GPU 需要合并的不只是“算完的向量”，还包括能够恢复全局 Softmax 归一化权重的信息。
+
 ### Online Softmax：将全局归一化变成可合并的状态
-
-
 
 普通 Softmax。固定一个 batch、head 和 query，令 sᵢ 为该 query 对第 i 个可见 key 的注意力分数，pᵢ 为归一化后的权重。
 
@@ -225,22 +229,13 @@ for Q_i in query_tiles(Q):
 
 Q、K、V 按 tile 搬到片上，分数和概率就地消费，避免把完整 [S, S] 写入 HBM。密集 Attention 仍有平方级计算。伪代码说明的是分块和归一化原则，实际 kernel 会改变循环顺序、并行方式和流水排程。
 
-把单卡分块过程延伸到多卡，每张 GPU 都可以对本地 K/V 计算一组 \((m,\ell,a)\)。只要使用与前文一致的最大值重标定方式，统计量可以在设备之间合并：
+把单卡分块过程延伸到多卡，每张 GPU 都可以对本地 K/V 计算 \((m,\ell,a)\)。局部最大值与指数和不能直接求和，但可以通过**最大值重标定**合并；这正是下面 Tree Attention 使用的数学基础。
 
-$$
-\begin{aligned}
-m &= \max(m_A,m_B),\\
-\ell &= e^{m_A-m}\ell_A+e^{m_B-m}\ell_B,\\
-a &= e^{m_A-m}a_A+e^{m_B-m}a_B,\\
-O &= a/\ell.
-\end{aligned}
-$$
+不过分布式 Attention 不一定都选择传输统计量：Ring Attention 的主要做法是让 K/V 块流向保留 Query 的 GPU，然后在 Query 所在 GPU 上持续更新 Online Softmax 状态。下面先对比它们各自交换的数据。
 
-这样就建立了从 **FlashAttention 的片上分块归约**到**Tree Attention 的跨 GPU 归约**的数学联系。但并不是所有分布式 Attention 都需要把完整的 Softmax 统计量发送到另一张 GPU：Ring Attention 选择的主要方式是交换 K/V 块，再在 Query 所在 GPU 上本地累积。
+### Ring、Tree、Ulysses：究竟传输什么？
 
-### Ring、Tree、Ulysses：传输的数据究竟是什么？
-
-当上下文被拆到多个 GPU 上时，每张卡只能直接访问本地的 K/V，Attention 却需要汇聚所有可见 Key 的贡献。这里先讨论**如何完成跨卡 Attention**，再到第六节单独说明推理时的 KV Cache 存储和复用。
+当上下文被切到多个 GPU 时，每个 Query 都需要汇聚所有可见 Key 的贡献。不同算法对通信对象的选择，决定了性能特征。
 
 ### Ring Attention 是 CP 的一种实现
 
@@ -319,9 +314,7 @@ $$
 
 接收量相同；真实时间还受到通信启动、链路拓扑、内核融合和重叠程度影响。这个公式不能直接代替端到端性能测量。
 
-### 从 Ring 集合通信理解通信量
-
-### Ring 集合通信的每 rank 通信量
+### Ring 集合通信的每 Rank 数据量
 
 设通信组有 R 个 rank，完整逻辑张量大小为 U 字节，均匀分成 R 块。以下计量每个 rank 发出的 payload，接收量相同。若统计收发总量，需要再乘以 2。
 
@@ -382,7 +375,7 @@ $$
 | FA3 | 面向 Hopper，利用 TMA 和 Tensor Core 异步流水，支持 FP8 路径。 |
 | FA4 | 面向 Blackwell，联合设计算法和流水，使用指数近似等手段缓解计算单元增长不均衡。 |
 
-### FlashAttention v1 到 v4 分别优化什么
+**各版本的变化可归纳为：**
 
 **v1 · 减少显存读写。** 分块加载 Q、K、V，用 Online Softmax 在片上累积结果，避免把整张注意力矩阵写回 HBM。
 
@@ -402,9 +395,7 @@ MLA（Multi-head Latent Attention）使用低秩潜变量压缩 KV。以 DeepSee
 
 ### PagedAttention 与多级 KV Cache
 
-前面的 Ring、Tree 和 Ulysses 讨论**跨设备怎样完成 Attention 计算**。推理服务还会遇到另一个独立问题：长时间运行的请求怎样存放、查找、复用并迁移历史 K/V。这里转到 KV Cache 的存储布局和缓存层级。
-
-### PagedAttention 管理推理 KV Cache
+推理服务还需要解决另一个独立问题：历史 K/V 怎样存放、查找、复用并迁移，而不是只考虑一次 Attention 如何在 GPU 之间计算。
 
 <figure class="asb-figure asb-figure--source">
   <button class="asb-zoom-trigger" type="button" aria-label="放大图片：技术示意图 4"><img src="/images/parallel/figure-4.svg" alt="技术示意图 4" loading="lazy" /></button>
