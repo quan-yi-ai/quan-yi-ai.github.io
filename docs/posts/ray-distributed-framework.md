@@ -18,9 +18,9 @@ lastUpdated: false
 
 Ray 提供了一套跨进程与跨节点的执行抽象：**Task** 负责一次性远程计算，**Actor** 提供持久状态，**ObjectRef** 表示结果引用与数据依赖。理解这三者之后，才能解释 Raylet、GCS、Object Store 和 Ray 在 vLLM 分布式推理中的作用。
 
-## 一、从 Task、Actor、ObjectRef 开始
+## 一、Ray Core：Task、Actor 与 ObjectRef
 
-### Task：函数的远程执行
+### Task：无状态远程任务
 
 ```python
 import ray
@@ -37,7 +37,7 @@ print(ray.get(refs))  # [0, 1, 4, 9]
 
 `square.remote(i)` 返回的是一个 **ObjectRef**，而不是函数执行结果，也不是普通任务 ID。Driver 可以先提交多个独立的 Task，再用 `ray.get` 等待结果。这类任务适合数据预处理、独立评估或仿真。远程执行不保证一定与串行运行相比更快；细粒度任务还要考虑调度、序列化和对象传输成本。
 
-### Actor：带状态的远程进程
+### Actor：有状态的远程执行单元
 
 ```python
 @ray.remote
@@ -61,7 +61,7 @@ Actor 通过远程方法操作自己的状态，适合模型 Worker、持续运�
   <figcaption>Task 与 Actor：一次性远程执行与持续维护状态的远程进程。</figcaption>
 </figure>
 
-### ObjectRef：先建立依赖，再获得实际数据
+### ObjectRef 与任务依赖
 
 ```python
 @ray.remote
@@ -84,7 +84,7 @@ print(ray.get(ref_b))  # 6
   <figcaption>传递 ObjectRef 描述依赖，真正的对象值可在其他 Worker 或节点上。</figcaption>
 </figure>
 
-## 二、Ray 内部：任务由谁调度，结果保存在哪里？
+## 二、Ray 集群架构与分布式任务调度
 
 | 组件 | 主要负责 | 不应该误解成 |
 | --- | --- | --- |
@@ -99,7 +99,7 @@ print(ray.get(ref_b))  # 6
   <figcaption>控制元数据、任务调度与实际对象传输属于不同层面。</figcaption>
 </figure>
 
-### 为什么不能简单说“Head 节点统一调度全部任务”？
+### 节点级调度与资源放置
 
 Head 节点提供关键控制服务，但 Ray 的调度涉及节点级资源管理、对象依赖和放置约束，并不是每次 Task 都由一个中央服务逐一挑选最优机器。
 
@@ -107,7 +107,7 @@ Head 节点提供关键控制服务，但 Ray 的调度涉及节点级资源管�
 
 Ray 对资源的分配和执行地点的决定，不等于它同时负责业务框架内部的 GPU Kernel 或 NCCL 数据传输。
 
-## 三、对象存储与容错：任务失败后真的能恢复吗？
+## 三、对象生命周期与故障恢复
 
 Ray 将返回对象的引用和对象值分开管理。结果可能存在 Object Store 中，需要它的 Worker 可能通过本地访问或跨节点传输取得对象。对象的生命周期还会受引用计数、内存使用和系统配置影响。
 
@@ -117,11 +117,11 @@ Ray 将返回对象的引用和对象值分开管理。结果可能存在 Object
 - Actor 进程故障：可配置重启与方法重试，但进程内业务状态不会在所有场景下自动恢复；需要显式持久化或重建。
 - 对象或节点丢失：某些情况下可尝试重建对象，但并非一切对象都可以恢复，特别是有外部输入或不可重放副作用的计算。
 
-旧资料中将 GCS 描述为“存储所有任务血缘、所以所有 Task 和 Actor 都能重放恢复”，这一说法过于绝对。GCS 管理的集群控制信息与对象数据本身不是同一回事；容错还涉及任务所有权、配置、失败时机和具体 Ray 版本。
+GCS 主要管理集群级控制信息，而非保存全部对象数据或提供对所有 Actor 状态的自动回放。任务重试、对象重建与 Actor 状态恢复具有不同的机制和约束，实际行为还受任务所有权、系统配置与 Ray 版本影响。
 
-## 四、Ray + vLLM：资源管理与模型并行的边界
+## 四、Ray 与 vLLM 的分布式推理架构
 
-这也是 Ray 在 AI Infrastructure 场景里最值得理解的部分。
+在多 GPU 推理场景中，需要区分分布式资源管理与模型执行两类职责。
 
 **Ray 管理 Worker 的分布式创建与资源放置；vLLM 负责模型加载、执行引擎、TP/PP 策略和所需 GPU 通信的初始化。** 不能把 NCCL AllReduce 简单说成由 Ray 的 GCS 来完成。
 
@@ -130,7 +130,7 @@ Ray 将返回对象的引用和对象值分开管理。结果可能存在 Object
   <figcaption>Ray 解决 Worker 放在哪里，vLLM 解决 GPU Worker 如何协作计算。</figcaption>
 </figure>
 
-### 两节点、两 GPU 的逻辑部署
+### 双节点张量并行部署示例
 
 设 Node A 和 Node B 各有一张 GPU，先使其加入同一个 Ray 集群，再让 vLLM 采用 Ray Executor 与两卡 TP：
 
@@ -157,9 +157,9 @@ vllm serve <MODEL_PATH> \
 
 Ray Actor 启动成功，不等于 NCCL 一定可用。vLLM 也存在不使用 Ray 的其他执行后端，选择依赖部署规模和条件。
 
-## 五、Dashboard：不要背菜单，而要学会定位故障
+## 五、Ray Dashboard 与分布式故障排查
 
-原本的 Dashboard 笔记罗列了 Cluster、Jobs、Actors、Metrics、Logs 和 Server。对系统工程而言，更重要的是看到症状后如何找到对应层。
+Ray Dashboard 提供 Cluster、Jobs、Actors、Metrics、Logs 等观察入口。排查分布式问题时，应先根据故障现象确定所在层级，再选择相应的日志、资源状态或性能指标。
 
 | 故障现象 | 首先观察 | 后续排查 |
 | --- | --- | --- |
@@ -170,15 +170,15 @@ Ray Actor 启动成功，不等于 NCCL 一定可用。vLLM 也存在不使用 R
 | 跨节点 GPU 通信失败 | Logs、节点网络状态 | NCCL、网络设备和端口 |
 | Ray 控制服务异常 | Ray 系统日志 | GCS、Dashboard / Agent 与节点服务 |
 
-### 一个具体的排障思路
+### vLLM Worker 启动异常的排查流程
 
 假设 vLLM 使用 Ray Executor 启动后一直没有进入服务就绪状态。
 
 先确认**Ray 是否能发现足够 GPU**。如果资源不够，检查节点、Placement Group、资源占用。如果 GPU 资源已经预留，再检查 Worker Actor 的生命周期；Actor 启动失败应重点查看其日志。如果 Actor 已运行，但停在模型初始化或集合通信阶段，再分析 vLLM 和 NCCL 的日志。
 
-这个顺序能够避免把所有问题都当作“Ray 调度失败”。Dashboard 的具体入口和可用指标会因版本以及监控部署而变化。
+这样可以将资源调度、Actor 生命周期和模型初始化问题分别定位。Dashboard 的具体入口和可用指标会因版本以及监控部署而变化。
 
-## 六、Ray 在 RL Infra 中负责到哪一步？
+## 六、Ray 在 RL 基础设施中的职责边界
 
 在 RL 后训练中，Rollout、Reward 和 Trainer 可以由 Ray Task 或 Actor 运行，但它们之间的样本何时就绪、Microbatch 如何组织、哪个版本的策略允许消费哪些数据，并不会仅靠 Ray 的远程调用自动解决。
 
@@ -193,7 +193,7 @@ Ray Actor 启动成功，不等于 NCCL 一定可用。vLLM 也存在不使用 R
 
 如果明确了这几条边界，就更容易判断究竟是调度开销、对象传输、GPU 通信还是训练/推理算法造成的性能问题。
 
-## 七、结论：理解 Ray，不止是会使用 ray.remote
+## 七、总结：Ray 的执行模型与系统边界
 
 读懂 Ray 的一条主线是：
 
@@ -201,7 +201,7 @@ Ray Actor 启动成功，不等于 NCCL 一定可用。vLLM 也存在不使用 R
 
 对应的工程问题也很具体：资源不足还是任务依赖没就绪？Actor 失败还是 GPU 通信失败？对象传输代价是否过大？故障恢复是否会重复外部副作用？
 
-Ray 的重点是统一的分布式执行抽象，而不是包揽模型执行、所有数据存储、GPU 集合通信和算法控制的全部职责。
+Ray 提供统一的分布式执行与资源管理抽象；模型计算、专用数据存储、GPU 集合通信和算法控制仍由相应的框架与组件承担。
 
 ## 参考资料与延伸阅读
 
