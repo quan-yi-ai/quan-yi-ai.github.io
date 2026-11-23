@@ -125,7 +125,7 @@ $$
 <figure class="asb-figure asb-figure--source"><a href="/images/parallel/figure-3.svg" target="_blank" rel="noopener noreferrer" title="放大查看原文图 3"><img src="/images/parallel/figure-3.svg" alt="飞书原文技术示意图 3" loading="lazy" /></a><figcaption><span>SOURCE FIG. 03</span> 飞书原文技术图 · 点击可查看大图</figcaption></figure>
 
 $$
-\begin{aligned} m' &= \max(m,\; \max s_j) \\[5pt] \alpha &= e^{m-m'} \\[5pt] p_j &= e^{s_j-m'} \\[5pt] \ell' &= \alpha\,\ell + \sum p_j \\[5pt] a' &= \alpha\,a + p_j\,V_j \\[5pt] O &= \frac{a}{\ell} \end{aligned}
+\begin{aligned} m' &= \max(m,\; \max s_j) \\[5pt] \alpha &= e^{m-m'} \\[5pt] p_j &= e^{s_j-m'} \\[5pt] \ell' &= \alpha\,\ell + \sum p_j \\[5pt] a' &= \alpha\,a + \sum_j p_j\,V_j \\[5pt] O &= \frac{a'}{\ell'} \end{aligned}
 $$
 
 固定某个 query 行，设 key 块 j 的有效分数是 sⱼ、对应 value 是 Vⱼ。每行维护运行最大值 m、指数和 ℓ、未归一化的加权和 a，初始为 (−∞, 0, 0)。处理每个有效块时：
@@ -231,7 +231,7 @@ $$
 
 <figure class="asb-figure asb-figure--source"><a href="/images/parallel/figure-4.svg" target="_blank" rel="noopener noreferrer" title="放大查看原文图 4"><img src="/images/parallel/figure-4.svg" alt="飞书原文技术示意图 4" loading="lazy" /></a><figcaption><span>SOURCE FIG. 04</span> 飞书原文技术图 · 点击可查看大图</figcaption></figure>
 
-将你提到的“配置的 Attention”按 PagedAttention 理解。若每个 KV block 容纳 J 个 token，逻辑位置 t 的块号是 floor(t/J)，块内偏移是 t mod J。块表把逻辑块号映射到物理块，物理块可不连续。请求增长时按需申请，支持前缀共享，减少碎片和预留浪费。每个有效 token 的 KV payload 由模型结构和精度决定。
+PagedAttention 关注的是 KV Cache 的**逻辑位置与物理存储块之间的映射**，不是新的一种跨 GPU Attention 并行轴。若每个 KV block 容纳 J 个 token，逻辑位置 t 的块号是 floor(t/J)，块内偏移是 t mod J。块表把逻辑块号映射到物理块，物理块可不连续。请求增长时按需申请，支持前缀共享，减少碎片和预留浪费。每个有效 token 的 KV payload 由模型结构和精度决定。
 
 ### LMCache、Mooncake 与 HiCache：缓存管理的不同层次
 
@@ -249,13 +249,7 @@ $$
 
 **HiCache：推理引擎内的分层缓存机制。** 可以按 GPU HBM、CPU 主机内存和外部 / 分布式存储的层级理解。它与 PagedAttention 不是互斥方案：前者关注缓存层次与迁移，后者关注 KV 的逻辑块和物理块映射。
 
-参考资料
 
-[Megatron Core 并行指南](https://docs.nvidia.com/megatron-core/developer-guide/latest/user-guide/parallelism-guide.html) · [Megatron Core 上下文并行](https://docs.nvidia.com/megatron-core/developer-guide/latest/user-guide/features/context_parallel.html) · [Megatron Core MoE Dispatcher](https://docs.nvidia.com/megatron-core/developer-guide/latest/apidocs/core/core.transformer.moe.token_dispatcher.html)
-
-[GQA](https://arxiv.org/abs/2305.13245) · [DeepSeek-V2 与 MLA](https://arxiv.org/abs/2405.04434) · [FlashAttention](https://arxiv.org/abs/2205.14135) · [FA2](https://arxiv.org/abs/2307.08691) · [FA3](https://arxiv.org/abs/2407.08608) · [FA4](https://arxiv.org/abs/2603.05451)
-
-[PagedAttention](https://arxiv.org/abs/2309.06180) · [Ring Attention](https://arxiv.org/abs/2310.01889) · [DeepSpeed Ulysses](https://arxiv.org/abs/2309.14509)
 
 ## 七　多维并行组合与计算通信重叠
 
@@ -291,3 +285,11 @@ $$
 | Proxy 线程 | 某些通信协议或网络路径需要 CPU 端 Proxy 协作 | 并非每个 Channel 都必然有独立线程 |
 | QP 建立 | RDMA 网络路径可能需要建立 Queue Pair | 单机 NVLink/PCIe 路径不一定涉及 QP |
 | 数据传输 | 通过选定协议与互连传输数据 | RDMA 只是可能的传输方式之一 |
+
+## 参考资料与进一步阅读
+
+[Megatron Core 并行指南](https://docs.nvidia.com/megatron-core/developer-guide/latest/user-guide/parallelism-guide.html) · [Megatron Core 上下文并行](https://docs.nvidia.com/megatron-core/developer-guide/latest/user-guide/features/context_parallel.html) · [Megatron Core MoE Dispatcher](https://docs.nvidia.com/megatron-core/developer-guide/latest/apidocs/core/core.transformer.moe.token_dispatcher.html)
+
+[GQA](https://arxiv.org/abs/2305.13245) · [DeepSeek-V2 与 MLA](https://arxiv.org/abs/2405.04434) · [FlashAttention](https://arxiv.org/abs/2205.14135) · [FA2](https://arxiv.org/abs/2307.08691) · [FA3](https://arxiv.org/abs/2407.08608) · [FA4](https://arxiv.org/abs/2603.05451)
+
+[PagedAttention](https://arxiv.org/abs/2309.06180) · [Ring Attention](https://arxiv.org/abs/2310.01889) · [DeepSpeed Ulysses](https://arxiv.org/abs/2309.14509)
