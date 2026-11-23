@@ -83,3 +83,17 @@ html { scroll-behavior:smooth; }
 .asb-click-burst {position:fixed;z-index:9999;pointer-events:none;left:0;top:0;width:12px;height:12px;border-radius:50%;border:1.5px solid var(--vp-c-brand-1);background:rgba(98,230,189,.18);box-shadow:0 0 16px rgba(98,230,189,.28);transform:translate(-50%,-50%) scale(.2);animation:asb-click-pop .52s cubic-bezier(.2,.75,.2,1) forwards;}
 @keyframes asb-click-pop {0% {opacity:.9;transform:translate(-50%,-50%) scale(.2);} 80% {opacity:.5;} 100% {opacity:0;transform:translate(-50%,-50%) scale(4.8);}}
 @media (prefers-reduced-motion: reduce) {.asb-click-burst{display:none!important}.asb-button,.asb-topic,.asb-article {transition:none!important;}}
+
+/* Long-form technical article: figures, restored sheets, and information hierarchy. */
+.asb-table-kicker { margin:32px 0 12px;font-size:11px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;color:var(--vp-c-brand-1); }
+.vp-doc table { border:1px solid var(--vp-c-divider);border-radius:10px;overflow:hidden;font-size:.86rem;line-height:1.65;background:var(--vp-c-bg-soft); }
+.vp-doc table th { font-weight:750;background:rgba(74,169,142,.13); }
+.vp-doc table tr:nth-child(2n) {background:rgba(123,164,161,.04);}
+.vp-doc table td,.vp-doc table th {padding:11px 15px;border:1px solid var(--vp-c-divider);vertical-align:top;}
+.vp-doc .asb-figure { background:linear-gradient(130deg,rgba(63,139,127,.08),rgba(83,124,159,.07)); padding:24px 26px; margin:36px 0; }
+.vp-doc .asb-figure img { border-radius:6px; width:100%;height:auto;object-fit:contain; }
+.vp-doc .asb-figure figcaption {line-height:1.6;}
+.vp-doc .asb-editorial-heading {margin-bottom:11px;}
+.vp-doc>h1 { margin-bottom:18px; }
+.vp-doc>h1 + p {color:var(--vp-c-text-2);font-size:1.06rem;line-height:1.85;}
+@media (max-width:640px) {.vp-doc .asb-figure {padding:10px;margin:22px -6px;}.vp-doc table td,.vp-doc table th {padding:9px;}}
