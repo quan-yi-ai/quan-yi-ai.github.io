@@ -90,8 +90,8 @@ PP 把连续的一组完整 block 放到每个阶段。在未叠加 TP、SP 或 
 ### TP 在 Attention 里切 head 数
 
 <figure class="asb-figure asb-figure--source">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大图片：技术示意图 2"><img src="/images/parallel/figure-2.svg" alt="技术示意图 2" loading="lazy" /></button>
-  <figcaption>TP 下的 Attention Head 与矩阵投影分片</figcaption>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大图片：技术示意图 2"><img src="/diagrams/tp-attention-heads.svg" alt="TP Attention 的 Head 切分和两个 GPU 的输出投影部分和归约矢量图" loading="lazy" /></button>
+  <figcaption>Tensor Parallelism：每卡处理部分 Attention Head，输出投影后归约部分和</figcaption>
 </figure>
 
 每个 rank 的 Q、K、V 权重按输出特征列切为 [H, A / T]，都处理完整 S 个 token。MHA 的每张卡负责 Nₕ / T 个完整 head，head 宽度 Dₕ 不变。本地分数形状为 [B, Nₕ / T, S, S]。本地 head 拼成 [M, A / T]，乘本地输出投影权重 [A / T, H] 得到 [M, H] 部分和。纯 TP 用 AllReduce 求和，TP+SP 用 ReduceScatter 求和并把 token 分回各卡。对 GQA/MQA，KV head 数比 Q head 少，KV 如何分布或复制要看实现。
