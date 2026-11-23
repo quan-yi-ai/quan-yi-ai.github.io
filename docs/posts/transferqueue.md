@@ -1,6 +1,6 @@
 ---
 title: TransferQueue
-description: 从 RL 训推分离的样本交付问题出发，解析 TransferQueue 的控制面、数据面、二维样本状态、DataFlow 编排、SimpleStorage 与 MooncakeStore、RDMA 和一步异步。
+description: 从一条 RL 经验样本的写入、状态更新到微批消费，理解 TransferQueue 的控制面、数据面、异步编排和跨节点存储路径。
 sidebar: false
 aside: right
 outline: [2, 2]
@@ -12,7 +12,7 @@ lastUpdated: false
 <div class="asb-story-header">
   <div class="asb-story-breadcrumb"><a href="/posts/">← 返回文章列表</a></div>
   <h1 id="transferqueue" tabindex="-1">TransferQueue</h1>
-  <p class="asb-story-subtitle">从 RL 训推分离到流式数据调度与存储</p>
+  <p class="asb-story-subtitle">从一条经验样本出发，拆解 RL 流式数据系统</p>
   <p class="asb-story-deck">在 Rollout、Reward 与 Trainer 分开运行时，谁负责决定哪些样本已经就绪、由谁消费，又怎样把真实 Tensor 高效地送到下一个任务？从控制面与数据面的分工理解 TransferQueue。</p>
 </div>
 
@@ -21,194 +21,164 @@ TransferQueue 解决的不只是“把 Tensor 从 A 传到 B”的问题。它�
 本文先解释训推分离产生的数据需求，再沿 Controller → Metadata → StorageManager → Storage Backend 的路径理解完整的样本生命周期，最后讨论异步策略版本、存储后端与性能验证。
 
 
-## 一、训推分离为什么需要数据系统
+## 一、为什么训推分离之后，数据系统会变复杂？
 
-大模型强化学习后训练可采用共置式（colocated）或分离式（separated）架构。共置式通常在同一组资源上分时运行 Rollout 和 Update；分离式则把两类任务部署在不同资源上。
+在一次 RL 后训练迭代中，Rollout 生成 Response，Reward 计算反馈，Trainer 消费相应字段并更新模型。它们可以部署在同一组 GPU 上分时运行，也可以由独立进程甚至独立集群运行。
 
 分离式架构是常见的工程选择之一，其核心是让 Actor Rollout 和 Actor Update 使用不同的计算资源。它的潜在动机包括提升资源利用效率、降低切换开销，以及复用现有训推集群；是否更优仍取决于负载与集群条件。
 
-效率上：训练与推理的负载特性不同：训练往往有大量矩阵乘运算，而推理 Decode 阶段常受 KV Cache 访问与内存带宽影响。模型规模、批大小和序列长度会改变各自的瓶颈，因此资源分离可能更容易针对不同阶段独立调优。
+从计算特性来看，训练往往有大量矩阵乘运算，而推理 Decode 阶段常受 KV Cache 访问与内存带宽影响。模型规模、批大小和序列长度会改变各自的瓶颈，因此资源分离可能更容易针对不同阶段独立调优。
 
 在部分共置式实现中，Rollout 与 Update 交替运行还可能涉及模型状态加载、卸载与 Resharding，因为训练与推理的最优并行布局未必一致。模型越大、并行策略越复杂，这些切换成本越值得单独测量。
 
-成本上：分离式架构有可能将RL框架作为一个顶层的调度模块，从而复用已有训推集群，并利用异构计算资源进行后训练，从而降低开销。
+从部署成本来看，分离式架构有机会复用既有训推资源，采用不同计算设备；能否降低总成本取决于资源利用率以及额外的传输与同步开销。
 
 分离式架构的挑战不只有节点间传输，还包括把全局样本组织为能够立即消费的 Microbatch，以及对 On-policy 程度和策略版本差异进行管理。
 
+真正的难点不是让数据从 GPU A 复制到 GPU B，而是处理下面这种情况：**同一个 Global Batch 内，某些样本已经产生 Response，某些已经有 Reward，另一些还在生成；训练端需要从中选出所需字段都就绪的样本。**
 
-## 二、TransferQueue 架构与样本读写
-
-TransferQueue：一个具有全景视角、流式调度能力的数据系统
-
-数据上游生产者将处理好的数据装箱发送至TransferQueue，TransferQueue将这些数据拆箱并保存起来，并在下游消费者请求数据时，重新打包并发送过去，实现计算任务间数据的动态路由。
+因此我们需要区分三件事：谁维护全局样本状态、谁决定哪个任务消费哪些样本、谁负责传输真实 Tensor。TransferQueue 正是在这些边界上提供统一的数据管理机制。
 
 <figure class="asb-figure asb-figure--cover">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大技术图：Rollout 生产经验，TransferQueue 管理样本状态，Trainer 按需消费"><img src="/diagrams/tq-figure-1.svg" alt="Rollout 生产经验，TransferQueue 管理样本状态，Trainer 按需消费" loading="lazy" /></button>
-  <figcaption>Rollout 生产经验，TransferQueue 管理样本状态，Trainer 按需消费</figcaption>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大图片：Rollout、Reward 和 Trainer 使用 TransferQueue 交接样本字段"><img src="/diagrams/tq-figure-1.svg" alt="Rollout、Reward 和 Trainer 使用 TransferQueue 交接样本字段" loading="lazy" /></button>
+  <figcaption>计算任务与数据系统解耦：生产者写入样本，消费者按字段就绪状态读取</figcaption>
 </figure>
 
-好处：
+## 二、核心架构：Metadata 与 Payload 为什么要分开？
 
-1.各个计算任务之间不再有显式的数据依赖关系
-
-2.数据调度粒度变得更精细，仍然要凑够Micro Batch的数据
-
-3.TransferQueue具有整个Global Batch的全景视角
-
-
-### 控制平面与数据平面
-
-将TransferQueue分为控制平面和数据平面两部分，控制平面用于管理训练数据的全局调度，而数据平面则以分布式的方式，存储真正的训练数据并进行高效传输。
+TransferQueue 将**控制面**与**数据面**分离。控制面由 Controller 跟踪分区、样本索引、各字段的生产/消费状态与 Batch 选择；数据面由 StorageManager 与 StorageUnit 承载字段的存储、读取和传输。Ray 可以承担进程启动、发现等基础设施职责，但频繁的数据读写不等于每次都经过 Ray 对象传输。
 
 <figure class="asb-figure asb-figure--cover">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大技术图：控制面负责就绪状态与元数据，数据面负责实际 Payload"><img src="/diagrams/tq-figure-2.svg" alt="控制面负责就绪状态与元数据，数据面负责实际 Payload" loading="lazy" /></button>
-  <figcaption>控制面负责就绪状态与元数据，数据面负责实际 Payload</figcaption>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大图片：TransferQueue 的控制面和数据面"><img src="/diagrams/tq-figure-2.svg" alt="TransferQueue 的控制面和数据面" loading="lazy" /></button>
+  <figcaption>Controller 负责逻辑状态，StorageManager / StorageUnit 负责实际数据路径</figcaption>
 </figure>
 
-为了实现流式、细粒度的数据管理，TransferQueue采用了一种二维数据结构：
+### 一张二维表理解样本的生命周期
 
-每行对应一个训练样本，索引（Index）标识该样本在全局批次（Global Batch）中的位置。
-
-每列代表对应RL任务的输入输出，如Prompts、Responses、Reference Log Prob等
-
-这样设计是因为 在 RL 任务中，每个训练样本是由各个计算任务接力生成的。
+把一个 Global Batch 看成一张逻辑表：**行是样本索引，列是 Prompt、Response、Reward、Logprobs 等字段**。不同任务接力生产字段，Controller 维护相应状态；真实字段值存放在数据面，而不是把所有 Tensor 都塞进 Metadata。
 
 <figure class="asb-figure asb-figure--cover">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大技术图：按样本索引和字段组织训练数据，逐步补齐就绪状态"><img src="/diagrams/tq-figure-3.svg" alt="按样本索引和字段组织训练数据，逐步补齐就绪状态" loading="lazy" /></button>
-  <figcaption>按样本索引和字段组织训练数据，逐步补齐就绪状态</figcaption>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大图片：四个样本的字段就绪和消费状态矩阵"><img src="/diagrams/tq-sample-lifecycle.svg" alt="四个样本的字段就绪和消费状态矩阵" loading="lazy" /></button>
+  <figcaption>同一时刻不同样本可能具有不同的字段就绪状态；图中数据是教学示例</figcaption>
 </figure>
 
-在控制平面，通过一系列Metadata记录每条样本在每个阶段的生产消费情况。
+例如，某 Trainer 要求字段 `response`、`reward` 和 `logprobs`，那么仅有 Prompt 或 Response 的样本都不能直接满足该请求。**Ready 不是一个笼统的“样本完成”布尔值，而要结合请求字段和消费任务判断。** 消费状态也需要区分 Task，不能把一个任务消费过直接理解成所有下游任务都不可再读。
 
-以数据读取过程为例，我们介绍TransferQueue系统的交互流程：
+## 三、真正走一遍 PUT / GET：谁向谁发送什么？
 
-1.某路DP完成计算任务，向这个任务对应的TransferQueue Controller发起数据读取请求
+这是理解 TransferQueue 最重要的一节。下面基于项目现有的 [TransferQueueClient](https://github.com/Ascend/TransferQueue/blob/main/transfer_queue/client.py)、[Python Controller](https://github.com/Ascend/TransferQueue/blob/main/transfer_queue/controller.py) 和 [AsyncSimpleStorageManager](https://github.com/Ascend/TransferQueue/blob/main/transfer_queue/storage/managers/simple_storage_manager.py) 路径，展示基本的调用关系；省略异常恢复、字段链接、定制解析器和不同后端的分支。
 
-2.TransferQueue Controller扫描自身所存储的生产消费状态，筛选出可被这次数据读取请求消费的样本，并且基于负载均衡策略，动态组织成一个Micro-Batch，将对应Metadata返回给数据消费者。
+### 写入：分配索引、存储字段、通知状态
 
-3.数据消费者根据MetaData，向分布式存储平面发起数据读取请求，获取实际数据。
+1. **生产者发起写入**。调用客户端的 `async_put(data, metadata=...)`；当没有 Metadata 时，客户端可以借助 Controller 的 `GET_META(mode="insert")` 获取或分配 Global Index。
+2. **数据面选择 StorageUnit**。SimpleStorageManager 根据全局索引路由，把字段值发送给对应的 StorageUnit。
+3. **控制面更新字段状态**。写入完成后的 Metadata / 生产状态通知使消费者能判断哪些字段已经就绪；要区分实际 Payload 落盘（或落内存）和 Metadata 就绪这两个事件。
 
+这里的 `BatchMeta` 不是样本内容本身。它记录索引、字段 Schema 等信息，为后续读写提供依据。
 
-## 三、数据流调度与算法编排
+### 读取：先获取 Metadata，再获取真实数据
 
-基于 TransferQueue 这类具有全局 Metadata 视角的数据管理组件，算法主控可以采用 DataFlow 范式：
-
-1. 异步启动各个 RL 计算任务，让它们按自身进度尝试消费所需字段。
-2. 把第一个 Global Batch 的 Prompts 写入 TransferQueue。
-3. 当对应样本的输入字段就绪时，各任务读取数据、执行计算，并写回新产生的字段；Controller 维护生产与消费状态。
-4. 主控在当前 Global Batch 的训练阶段结束后记录指标、逐出旧样本，并加入下一轮 Prompts，继续推进迭代。
-
-这种设计并不意味着完全不需要算法层同步：Iteration 边界、策略版本以及回收时机仍然需要由上层明确控制。
-
-<figure class="asb-figure asb-figure--cover">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大技术图：DataFlow 方式让计算任务由字段就绪状态驱动"><img src="/diagrams/tq-figure-4.svg" alt="DataFlow 方式让计算任务由字段就绪状态驱动" loading="lazy" /></button>
-  <figcaption>DataFlow 方式让计算任务由字段就绪状态驱动</figcaption>
-</figure>
-
-StreamRL、AReal 等方向也关注流式 Rollout 数据交付。与仅讨论 Rollout → Trainer 传输相比，TransferQueue 进一步强调对样本字段就绪、任务消费状态和不同计算阶段的数据依赖进行统一管理；各项目的实际能力仍应以所使用的版本和实现为准。
-
-将 TransferQueue 读取逻辑封装成 PyTorch DataLoader / Iterator 接口后，训练端可以迭代获取 Microbatch，而无需直接处理 Controller 与 Storage Backend 的内部协议。
-
-例如，对接 Megatron 训练后端时，上层消费的仍是符合训练逻辑的 Batch，底层则负责按需选样、路由与装配数据。
-
-<figure class="asb-figure asb-figure--cover">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大技术图：通过 DataLoader 将流式样本组织为训练微批次"><img src="/diagrams/tq-figure-5.svg" alt="通过 DataLoader 将流式样本组织为训练微批次" loading="lazy" /></button>
-  <figcaption>通过 DataLoader 将流式样本组织为训练微批次</figcaption>
-</figure>
-
-TransferQueue 使用 Ray 承载部分生命周期管理和分布式组件协作。理解整体性能时，需要区分 Ray 层的启动与发现开销、Controller 的 Metadata 热路径，以及 Storage Backend 的 Payload 传输成本。
-
-以写入经验数据为例，`put_experience` 可以从概念上拆成三个步骤（具体接口与调用顺序以代码版本为准）：
-
-1. 将 Batch 数据按 Sample 粒度整理。
-2. 与 Controller 交互，确定样本索引与 Metadata。
-3. 根据 Metadata 选择存储位置，把实际数据交给分布式 Storage Backend。
-
-Controller 还可以通过采样 / 负载均衡策略，在读请求到来时可以根据所指定的负载均衡策略来提高训练效率。例如，在需要处理变长 Response 的场景中，可以按 Token 工作量分配给不同 DP Worker，以减少部分 Worker 长时间等待；具体是否启用及其收益需要结合所使用的框架实现验证。
-
-
-## 四、策略版本与一步异步
-
-在部分大模型 RL 训练配置中，策略版本不一定要求严格同步；是否允许滞后，取决于算法、数据使用方式和稳定性要求。
-
-
-### 一步异步的策略版本约束
-
-所谓“一步异步”，指的是训练和推理模型最多只差一个版本。更准确地说，是训练最新模型时的输入数据，是由上一个版本的推理模型所产生的。
-
-
-## 五、数据平面实现：存储后端与传输路径
-
-前文用一步异步说明了训练端会消费哪个版本的 Rollout 样本。样本选定后，还要解决另一个问题：Rollout、Reward 和 Trainer 分处不同进程或节点时，实际数据怎样交到下一个任务手里？
-
-沿用前文的控制平面与数据平面分工：Controller 判断哪些字段已就绪，存储后端负责保存和传输实际数据。下文以 SimpleStorage 和 MooncakeStore 为例，追踪样本的读写路径，说明 RDMA 和零拷贝分别影响哪些环节。
-
-比较两个后端时，重点看样本存放在哪一层、跨节点如何传输，以及数据进入训练设备前经过哪些拷贝。
-
-
-### 样本字段与存储范围
-
-以 GRPO / PPO 为例，推理侧先从 Prompt 采样 Response，计算或收集 Reward、Logprobs 等数据，训练侧再据此计算 Advantage、Loss、梯度并更新参数。在训推分离或异步运行时，生产和消费数据的进程、设备、甚至机器不同；这时仅靠某个 Python 进程中的列表，不足以表达全局样本生命周期。
-
-<figure class="asb-figure asb-figure--cover">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大技术图：从 Prompt 到 Reward、Trainer 的经验样本生命周期"><img src="/diagrams/tq-figure-6.svg" alt="从 Prompt 到 Reward、Trainer 的经验样本生命周期" loading="lazy" /></button>
-  <figcaption>从 Prompt 到 Reward、Trainer 的经验样本生命周期</figcaption>
-</figure>
-
-这里的“存储”不是保存模型权重或 Adam 优化器状态，而是保存经验样本（experience）及字段：prompt、response、reward、logprobs、mask 等。一个样本可能被多个阶段逐步补齐字段，训练端需要知道哪些字段已就绪。
-
-
-### StorageManager 与可替换后端
-
-上文的读写流程以元数据连接调度与实际数据传输。数据平面通过 StorageManager 封装后端差异，并提供 put_data、get_data 和 clear_data 等操作。
-
-<figure class="asb-figure asb-figure--cover">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大技术图：统一 StorageManager API 与可替换的存储后端"><img src="/diagrams/tq-figure-7.svg" alt="统一 StorageManager API 与可替换的存储后端" loading="lazy" /></button>
-  <figcaption>统一 StorageManager API 与可替换的存储后端</figcaption>
-</figure>
-
+消费者首先向 Controller 请求满足条件的 Batch Metadata：
 
 ```python
-class StorageManager:  # 接口形状示意，签名以源码版本为准
-    async def put_data(self, data, metadata): ...
-    async def get_data(self, metadata): ...
-    async def clear_data(self, metadata): ...
+# 示例调用形状来自 TransferQueueClient API；省略 tq.init() 等初始化
+meta = await client.async_get_meta(
+    data_fields=["response", "reward", "logprobs"],
+    batch_size=4,
+    partition_id="train_0",
+    mode="fetch",
+    task_name="trainer",
+)
+if meta.size:
+    batch = await client.async_get_data(meta)
 ```
 
-同一套控制逻辑可以选择不同 Backend。SimpleStorage、MooncakeStore 并非互相对立的 RL 算法，而是针对不同部署条件实现的可替换数据承载方案。项目还列出了 Yuanrong、RayRDT 等选择。
+对应的核心源码职责：
 
+| 代码入口 | 关键职责 |
+| --- | --- |
+| [`TransferQueueClient.async_get_meta`](https://github.com/Ascend/TransferQueue/blob/main/transfer_queue/client.py#L243) | 向 Controller 发送 `GET_META` ZMQ 请求并接收 `BatchMeta` |
+| [`TransferQueueController.get_meta`](https://github.com/Ascend/TransferQueue/blob/main/transfer_queue/controller.py#L1413) | `fetch` 时筛选字段已 Ready 且未被当前任务消费的索引，运行 Sampler 并生成 Metadata |
+| [`TransferQueueClient.async_get_data`](https://github.com/Ascend/TransferQueue/blob/main/transfer_queue/client.py#L566) | 根据 `BatchMeta` 调用 `storage_manager.get_data()` |
+| [`AsyncSimpleStorageManager.get_data`](https://github.com/Ascend/TransferQueue/blob/main/transfer_queue/storage/managers/simple_storage_manager.py#L816) | 路由到 StorageUnit，处理字段读取与返回数据组装 |
+| [`StorageUnitData.get_data`](https://github.com/Ascend/TransferQueue/blob/main/transfer_queue/storage/simple_storage.py#L220) | 按字段名和 Global Index 读取对应数据 |
 
-### SimpleStorage 的数据路径
-
-SimpleStorage 是 TransferQueue 默认的基础 CPU 内存存储后端。它以多个 SimpleStorageUnit 组织样本数据，AsyncSimpleStorageManager 负责协调；Storage Unit 可分布在不同 Ray 节点上。底层配置说明其基于 ZMQ 的内存通信，重点在易用和较少的额外依赖，而不是承诺完全零拷贝。
+如果尚未凑齐请求的 Batch，`fetch` 在一般情况下可能返回空 `BatchMeta`，等待后续生产者完成写入；并不是每次请求都会立即收到可训练的 Microbatch。不同 Sampler 还可能有缓存结果或可变大小 Batch 的行为。
 
 <figure class="asb-figure asb-figure--cover">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大技术图：多 StorageUnit 中的样本与字段分布"><img src="/diagrams/tq-figure-8.svg" alt="多 StorageUnit 中的样本与字段分布" loading="lazy" /></button>
-  <figcaption>多 StorageUnit 中的样本与字段分布</figcaption>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大图片：Producer、Controller、StorageManager 和 StorageUnit 的 PUT GET 时序图"><img src="/diagrams/tq-put-get-sequence.svg" alt="Producer、Controller、StorageManager 和 StorageUnit 的 PUT GET 时序图" loading="lazy" /></button>
+  <figcaption>先取 Metadata，再取 Payload；写入同样区分索引状态与实际字段的传输</figcaption>
 </figure>
 
-一种有用的理解方式是二维表：每个 row 对应一个样本 ID，每个 column 对应任务产出的某个字段。Rollout 阶段写入 response，Reward 阶段补充 score，Trainer 只在需要的时刻读取对应字段。实际对象组织与 API 版本可能演进，但这一行列模型是文档明确描述的设计动机。
+### 一个具体例子：为什么返回顺序不能直接拼接？
+
+假设一次 GET 请求的 Global Index 顺序是 `[12, 7, 4, 9]`。使用两个 SimpleStorageUnit 且按 `global_index % 2` 路由：SU0 接收 `[12, 4]`，SU1 接收 `[7, 9]`。数据可能先后从不同 Unit 返回，但消费者预期的 Batch 顺序仍是 `[12, 7, 4, 9]`。
+
+<figure class="asb-figure asb-figure--cover">
+  <button class="asb-zoom-trigger" type="button" aria-label="放大图片：Global Index 通过取模路由至两个 StorageUnit 并按原始位置组装"><img src="/diagrams/tq-storage-routing.svg" alt="Global Index 通过取模路由至两个 StorageUnit 并按原始位置组装" loading="lazy" /></button>
+  <figcaption>示例使用两个 Unit，演示按索引路由和输出位置恢复；不是固定的物理集群拓扑</figcaption>
+</figure>
+
+这段逻辑在 [`_group_by_hash`](https://github.com/Ascend/TransferQueue/blob/main/transfer_queue/storage/managers/simple_storage_manager.py#L291) 中明确可见：一边记录各 Unit 需要的 `global_indexes`，一边保留它们在原 Batch 的 `batch_positions`。**并发读写不仅要搬对数据，还要把它放回正确位置。**
+
+## 四、DataFlow：多个 RL 任务如何异步协作？
+
+有了样本索引、字段就绪状态和按需读取机制，就可以让不同阶段的计算任务按自身进度推进，而不要求每次都由上游直接调用下游 RPC。
+
+<figure class="asb-figure asb-figure--cover">
+  <button class="asb-zoom-trigger" type="button" aria-label="放大图片：从 Prompt 到 Rollout Reward Trainer 的 DataFlow"><img src="/diagrams/tq-figure-4.svg" alt="从 Prompt 到 Rollout Reward Trainer 的 DataFlow" loading="lazy" /></button>
+  <figcaption>字段就绪驱动任务消费，但 Iteration 边界仍由上层管理</figcaption>
+</figure>
+
+以一个 Global Batch 的生命周期为例：
+
+1. 主控启动 Rollout、Reward、Trainer 等 Worker，再向数据系统写入 Prompts。
+2. Rollout 读到需要的 Prompt 后产生 Response、Logprobs 等字段，写回对应样本。
+3. Reward Worker 在所需字段就绪时读取数据、产生 Reward；Trainer 按所需字段和 Sampler 策略获取 Microbatch。
+4. 主控按算法要求管理本轮训练完成条件、指标、旧数据回收与下一轮 Prompts。
+
+对训练侧，可以把上述读取逻辑进一步包装成 DataLoader / Iterator，让模型训练代码关注 Batch，而不必直接了解 Controller 与 StorageUnit 的通信协议。
+
+### 不能忽略的一步异步与策略版本
+
+DataFlow 让**任务执行时间**更灵活，但不自动保证 On-policy 条件。所谓“一步异步”，通常是让训练使用由上一策略版本生成的数据；它是一种需要明确约束的调度方式，并非 TransferQueue 的默认语义或所有算法都能无条件接受的策略。
+
+例如要在训练更新模型时继续运行 Rollout，就必须知道每条样本由哪一个策略版本生成，并制定样本准入、权重更新和旧数据清理规则。**数据系统提供状态与交付能力，算法层决定可接受的策略滞后。**
+
+### 负载均衡为何影响训练效率？
+
+Response 长度不同会造成每个 DP Worker 的 Token 工作量不同。合理的采样和 Microbatch 分配有机会减少长尾等待，而不仅是平均分配相同数目的样本。能否实现及收益大小取决于 Sampler 的具体实现、元数据字段和运行配置。
+
+## 五、存储后端：SimpleStorage 与 MooncakeStore
+
+完成 Batch 选择之后，下一问题是**真实 Tensor 存放在哪里、怎么跨节点交付**。StorageManager 把上层请求与不同 Backend 分开，数据面并不是 Controller 内部的一个普通 Python List。
+
+<figure class="asb-figure asb-figure--cover">
+  <button class="asb-zoom-trigger" type="button" aria-label="放大图片：StorageManager 对多个 Backend 暴露统一数据操作"><img src="/diagrams/tq-figure-7.svg" alt="StorageManager 对多个 Backend 暴露统一数据操作" loading="lazy" /></button>
+  <figcaption>相同逻辑数据请求可以交由不同后端处理，但它们的内存与网络路径不同</figcaption>
+</figure>
+
+### SimpleStorage：先理解按索引存取
+
+SimpleStorage 是 TransferQueue 常用的基础存储后端，经典路径以 CPU 内存为主。它以多个 SimpleStorageUnit 组织样本数据，AsyncSimpleStorageManager 负责协调；Storage Unit 可分布在不同 Ray 节点上。其基础路径采用 ZMQ 通信，并不承诺端到端零拷贝；部分版本还提供可选的 SSD 扩展，应根据实际配置辨别数据驻留位置。
+
+在基础实现里，`StorageUnitData.put_data` 以 Global Index 为 Key 写入每个字段，`get_data` 根据字段名与索引读回结果。多个 StorageUnit 分担存储与网络请求，并不等于每个 Unit 都保存一份完整的 Global Batch。
 
 
-#### SimpleStorage 的适用场景与瓶颈
+##### 适用场景与瓶颈
 
 - 优点：依赖相对少、部署与调试成本低；很适合本地调试、功能验证和初期分布式训练。
 - 限制：数据主要落在 CPU DRAM；跨节点传输、序列化和多次 Host↔GPU 拷贝可能成为吞吐瓶颈。
 - 不要混淆：SimpleStorage 叫 Simple，不代表只有单机一个 Python dict；它可以使用多个分布式 Storage Unit。
 
-### MooncakeStore 的数据路径
+### MooncakeStore：分层与远程传输
 
 MooncakeStore 是 TransferQueue 的高性能 KV 型存储 Backend，支持层次化存储及可配置的 TCP/RDMA 数据传输。它通常需要额外的 Mooncake 软件组件、元数据协调服务、内存段配置以及网络能力。文档将其标为 beta，具体接口和配置应以所用版本为准。
 
 MooncakeStore 更像一个可远程访问的共享数据层：写入方以 Key 标识数据，读取方使用对应 Key/元信息找到数据。和 SimpleStorage 一样，训练框架可以通过上层统一接口访问它，但底层的数据放置、迁移和传输路径不同。
 
-<figure class="asb-figure asb-figure--cover">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大技术图：SimpleStorage 与 MooncakeStore 的概念数据路径"><img src="/diagrams/tq-figure-9.svg" alt="SimpleStorage 与 MooncakeStore 的概念数据路径" loading="lazy" /></button>
-  <figcaption>SimpleStorage 与 MooncakeStore 的概念数据路径</figcaption>
-</figure>
 
-
-#### MooncakeStore 的核心配置
+#### 配置示意与必要条件
 
 
 ```yaml
@@ -223,24 +193,7 @@ backend:
 
 这是用于理解的配置摘录，不保证可直接运行。特别是协议默认为 TCP 的配置示例中，不能仅凭启用了 MooncakeStore 就宣称正在使用 RDMA；开启 GPU Direct RDMA 还要求支持它的 GPU/NIC 与正确初始化。
 
-
-### RDMA、零拷贝与 GPUDirect RDMA
-
-<div class="asb-table-kicker">RDMA、零拷贝与 GPUDirect 的区别</div>
-
-| 概念 | 含义 | 不能直接推断的事 |
-| --- | --- | --- |
-| RDMA | 在支持的网络、内存注册与协议条件下进行远程内存访问 | 使用 RDMA 不代表全链路零拷贝 |
-| CPU Host Buffer | 数据可先经过可访问、可注册的 CPU 内存缓冲区 | 可能仍存在 CPU 复制或布局转换 |
-| GPUDirect RDMA | 在硬件与驱动支持下，让 NIC 直接访问 GPU 相关内存 | 不代表应用层没有序列化、Staging 或额外拷贝 |
-| End-to-end Zero Copy | 需要逐段确认数据路径与内存所有权 | 不能只看网络协议名称作出判断 |
-
-例如：即使网络阶段使用 RDMA，某个 Tensor 也可能先被复制到 CPU 的已注册缓冲区，再经网络传输。真正想证明“GPU 到 GPU 零拷贝”，需要检查每个缓冲区的位置、数据转换/序列化步骤，以及源和目的端的 GPU Direct 路径。
-
-TransferQueue 的 Mooncake GDR 文档明确指出：GDR 是可选路径，依赖 protocol: rdma、use_gdr: true 以及硬件支持；它还会为每个启用 GDR 的进程准备固定 GPU staging buffer。因而即使使用 GDR，也不应把整条训练数据流水线简化成“永远没有拷贝”。
-
-
-## 六、后端选型与性能验证
+### 两种后端的选择
 
 <div class="asb-table-kicker">SimpleStorage 与 MooncakeStore 对比</div>
 
@@ -257,8 +210,58 @@ TransferQueue 的 Mooncake GDR 文档明确指出：GDR 是可选路径，依赖
 
 不要只比“成功启动”或“某一段网络带宽”。建议固定模型、采样数量、响应长度、卡数、节点与网络，观测：Rollout→Trainer 交付延迟（p50/p95）、单位时间可交付样本数、CPU DRAM 峰值、GPU 占用、序列化耗时、网络吞吐和 Trainer 等待数据的空闲时间。还要区分冷启动与稳态，避免把元数据服务启动时间混进每批传输耗时。
 
+选择后端不能仅看“是否支持 RDMA”。需要结合真实的字段类型、单次 Payload 大小、并发量、网络资源、部署维护成本和训练端的等待时间。
 
-## 七、样本存储与显存卸载的边界
+## 六、RDMA、零拷贝与性能验证
+
+如果要判断一次跨节点数据交付是否高效，先明确四个不同问题：**源数据位于哪块内存、有没有中间 Buffer、网络使用哪种协议、最终 Tensor 在哪块设备上供训练消费。**
+
+<figure class="asb-figure asb-figure--cover">
+  <button class="asb-zoom-trigger" type="button" aria-label="放大图片：Tensor 从生产端到网络、接收端的可能内存路径"><img src="/diagrams/tq-memory-path.svg" alt="Tensor 从生产端到网络、接收端的可能内存路径" loading="lazy" /></button>
+  <figcaption>启用 RDMA 不等于全流程没有 CPU Staging、布局转换和额外拷贝</figcaption>
+</figure>
+
+<div class="asb-table-kicker">RDMA、零拷贝与 GPUDirect 的区别</div>
+
+| 概念 | 含义 | 不能直接推断的事 |
+| --- | --- | --- |
+| RDMA | 在支持的网络、内存注册与协议条件下进行远程内存访问 | 使用 RDMA 不代表全链路零拷贝 |
+| CPU Host Buffer | 数据可先经过可访问、可注册的 CPU 内存缓冲区 | 可能仍存在 CPU 复制或布局转换 |
+| GPUDirect RDMA | 在硬件与驱动支持下，让 NIC 直接访问 GPU 相关内存 | 不代表应用层没有序列化、Staging 或额外拷贝 |
+| End-to-end Zero Copy | 需要逐段确认数据路径与内存所有权 | 不能只看网络协议名称作出判断 |
+
+例如：即使网络阶段使用 RDMA，某个 Tensor 也可能先被复制到 CPU 的已注册缓冲区，再经网络传输。真正想证明“GPU 到 GPU 零拷贝”，需要检查每个缓冲区的位置、数据转换/序列化步骤，以及源和目的端的 GPU Direct 路径。
+
+TransferQueue 的 Mooncake GDR 文档明确指出：GDR 是可选路径，依赖 protocol: rdma、use_gdr: true 以及硬件支持；它还会为每个启用 GDR 的进程准备固定 GPU staging buffer。因而即使使用 GDR，也不应把整条训练数据流水线简化成“永远没有拷贝”。
+
+### 性能验证方法
+
+不要只比“成功启动”或“某一段网络带宽”。建议固定模型、采样数量、响应长度、卡数、节点与网络，观测：Rollout→Trainer 交付延迟（p50/p95）、单位时间可交付样本数、CPU DRAM 峰值、GPU 占用、序列化耗时、网络吞吐和 Trainer 等待数据的空闲时间。还要区分冷启动与稳态，避免把元数据服务启动时间混进每批传输耗时。
+
+后续验证建议将延迟拆成三个层次：Controller Metadata RPC 延迟、Storage Backend 传输延迟，以及从 Rollout 完成到 Trainer 实际可用 Batch 的**端到端交付延迟**。一项后端网络加速不一定等价于训练吞吐同比例提高。
+
+## 七、沿真实源码定位关键路径
+
+现在可以从项目实现反向检查前文结论，而不只是记住“控制面 / 数据面”两个概念。
+
+| 阅读顺序 | 代码 | 应当确认的问题 |
+| --- | --- | --- |
+| 1 | [`interface.py`](https://github.com/Ascend/TransferQueue/blob/main/transfer_queue/interface.py) | 对上层训练/推理 Worker 暴露了哪些 API？ |
+| 2 | [`client.py`](https://github.com/Ascend/TransferQueue/blob/main/transfer_queue/client.py) | `async_get_meta`、`async_get_data` 与 `async_put` 如何分离请求？ |
+| 3 | [`controller.py`](https://github.com/Ascend/TransferQueue/blob/main/transfer_queue/controller.py) | `fetch` 如何判断 Ready/Consumed，并交给 Sampler？ |
+| 4 | [`simple_storage_manager.py`](https://github.com/Ascend/TransferQueue/blob/main/transfer_queue/storage/managers/simple_storage_manager.py) | Global Index 如何路由到 Unit、Batch 顺序如何恢复？ |
+| 5 | [`simple_storage.py`](https://github.com/Ascend/TransferQueue/blob/main/transfer_queue/storage/simple_storage.py) | 字段值如何按 Index 真正写入和取回？ |
+| 6 | [`config.yaml`](https://github.com/Ascend/TransferQueue/blob/main/transfer_queue/config.yaml) | 实际使用何种 Backend、协议和内存选项？ |
+
+**阅读时要注意版本边界。** 这些路径和行为根据当前检索到的 GitHub 实现整理；未来重构可能使 Controller 的语言、模块位置和部分接口发生变化。项目代码的提交版本和运行配置决定实际行为。
+
+## 八、结论：TransferQueue 解决了什么，没有解决什么？
+
+TransferQueue 的核心价值可以归结为三件事：用全局样本索引和字段状态管理生产/消费；让不同计算任务按需组装 Microbatch；使数据路由与具体的 Storage Backend 解耦。
+
+但它**不自动保证**所有 RL 算法的 On-policy 条件，不自动让所有 Backend 具备 GPUDirect 或端到端零拷贝，也不会替代模型权重和优化器状态的显存管理。
+
+### 样本存储与模型显存卸载不是一回事
 
 <div class="asb-table-kicker">样本存储与显存卸载对比</div>
 
@@ -271,28 +274,13 @@ TransferQueue 的 Mooncake GDR 文档明确指出：GDR 是可选路径，依赖
 
 这实际上是两个正交维度：TransferQueue 的 Storage Backend 处理“样本如何从生产者送到消费者”；TMS/Selective Offload 处理“训推切换时哪些模型显存应当释放、如何恢复”。即使同时部署，也不能把 MooncakeStore 当成模型权重卸载器，或把 TMS 当成经验数据队列。
 
+对于系统优化，更值得问的是：当前 Trainer 究竟在等待 Controller 选择样本，还是等待 Storage Backend 搬运 Tensor？是由于字段就绪不齐导致 Batch 被阻塞，还是网络与拷贝真的达到了瓶颈？这些问题对应不同的优化方向。
 
-## 八、源码阅读路径与检查清单
+### 继续深入
 
-先从 README 和配置文件确认可选后端，再阅读 StorageManager 接口，最后沿 SimpleStorage 和 MooncakeStore 的实现追踪样本的读写路径。
+若要进一步研究 Python Controller 在高并发 Metadata 请求中的瓶颈、Rust/PyO3 重构以及可插拔传输层，可继续阅读 [《从TransferQueue重构理解python、cpp、Rust》](/posts/transferqueue-python-cpp-rust)。本文讨论的是数据系统的核心机制，下一篇讨论的是它在更高并发与不同传输后端下的工程扩展。
 
-- ① README：确认 StorageManager 的统一操作以及后端支持列表。
-- ② config.yaml：定位 storage_backend、SimpleStorage、MooncakeStore 的配置项。
-- ③ SimpleStorageUnit / AsyncSimpleStorageManager：追踪样本索引如何落到分布式单元。
-- ④ MooncakeStoreClient：理解 KV 批量传输、shape/dtype 元信息与客户端缓冲区。
-- ⑤ Mooncake GDR 指南：确认何时初始化 GPU、协议要求以及 staging buffer 生命周期。
-- ⑥ 训练侧调用点：观察 Trainer 哪些阶段等待 get_data、哪些字段参与 Loss 计算。
-
-## 九、阅读自测
-
-- Rollout 完成后，还需要哪些字段就绪，Trainer 才能读取完整的训练样本？
-- 为什么 SimpleStorage 也可以是多节点分布式系统？
-- 如何区分样本元信息调度和实际 Tensor 数据传输？
-- 为什么 MooncakeStore 不是默认就开启 RDMA？
-- 为什么“RDMA”与“GPU Direct Zero-Copy”不能画等号？
-- TMS 显存卸载与 TransferQueue 的存储后端各自管理什么数据？
-
-## 参考资料与延伸阅读
+## 参考资料
 
 TransferQueue README：[github.com/Ascend/TransferQueue](https://github.com/Ascend/TransferQueue)
 
@@ -307,8 +295,3 @@ verl TransferQueue 文档：[github.com/verl-project/verl/blob/main/docs/data/tr
 Relax Selective Offload PR #85：[github.com/redai-studio/Relax/pull/85](https://github.com/redai-studio/Relax/pull/85)
 
 这些架构图用于解释数据流与组件边界，不代表运行时 Profiling 结果；关于吞吐、延迟和零拷贝的结论，应以具体设备与部署条件下的测试为准。
-
-
-## 相关专题：控制面的 Rust 重构
-
-当样本管理从功能正确进一步走向高并发，Controller 的 Metadata 处理与 SimpleStorage 的网络协议抽象会成为新的工程议题。可继续阅读：[从TransferQueue重构理解python、cpp、Rust](/posts/transferqueue-python-cpp-rust)，从高频 RPC、PyO3、Bitset 与 PayloadTransfer 的角度理解两条重构路径。
