@@ -10,9 +10,9 @@
     "svg_http_status": 200,
     "svg_is_vector": true
   },
-  "run_id": "45141291143",
-  "source_sha": "6e400894247ffedf2fa849311b2403ffe8cd2ae1",
+  "run_id": "45141462729",
+  "source_sha": "72002fc13cc1f3f9161306a3919d254f70163693",
   "build": "success",
-  "deploy": "success",
-  "result": "success"
+  "deploy": "cancelled",
+  "result": "failure"
 }
