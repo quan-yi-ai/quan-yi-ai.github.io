@@ -5,9 +5,9 @@
     "page_kind": "vitepress",
     "has_home_hero": true
   },
-  "run_id": "45130274386",
-  "source_sha": "5510872d789909d1c3b4c15d8623621990661741",
-  "build": "cancelled",
-  "deploy": "cancelled",
-  "result": "failure"
+  "run_id": "45130315966",
+  "source_sha": "29c9c6381d7fee5f7f183b3c3abc2f24ab6ceb54",
+  "build": "success",
+  "deploy": "success",
+  "result": "success"
 }
