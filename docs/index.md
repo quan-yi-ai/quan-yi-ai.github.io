@@ -60,7 +60,7 @@ pageClass: asb-landing
   <section class="asb-section asb-featured">
     <div class="asb-kicker">02 / Selected writing</div>
     <div class="asb-section-head"><div><h2>最新文章</h2><p class="asb-description">技术文章正在陆续整理、校对与发布。</p></div><a class="asb-more" href="/posts/">全部文章 ↗</a></div>
-    <a class="asb-article" href="/posts/transformer-parallel-attention"><div><span class="asb-article-category">Systems / AI Infrastructure · Featured</span><h3>Transformer 并行方式与 Attention 实现</h3><p>从单卡计算出发，理解 TP、PP、DP、CP、EP，沿着张量形状分析 Attention 与通信。</p></div><span class="asb-article-arrow">↗</span></a>
+    <a class="asb-article" href="/posts/transformer-parallel-attention"><div><span class="asb-article-category">Systems / AI Infrastructure · Featured</span><h3>并行方式</h3><p>Transformer 并行方式与 Attention 实现：从单卡计算出发，沿着张量形状理解并行策略与通信。</p></div><span class="asb-article-arrow">↗</span></a>
   </section>
   <div class="asb-divider"></div>
   <div class="asb-footer-note">AI Systems & Beyond　·　Keep asking better questions.</div>
