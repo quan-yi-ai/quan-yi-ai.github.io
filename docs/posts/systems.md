@@ -4,4 +4,4 @@
 
 ## 文章
 
-- [Transformer 并行方式与 Attention 实现](/posts/transformer-parallel-attention) — 从计算公式、张量形状到分布式并行、Attention 实现与 NCCL 通信。
+- [并行方式](/posts/transformer-parallel-attention) — 从计算公式、张量形状到分布式并行、Attention 实现与 NCCL 通信。
