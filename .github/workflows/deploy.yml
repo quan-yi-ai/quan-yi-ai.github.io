@@ -4,6 +4,10 @@ name: Deploy VitePress to GitHub Pages
 on:
   push:
     branches: [main]
+    paths:
+      - 'docs/**'
+      - 'package.json'
+      - '.github/workflows/deploy.yml'
   workflow_dispatch:
 
 permissions:
@@ -40,3 +44,44 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+
+  report:
+    name: 记录构建和部署结果
+    if: always()
+    needs: [build, deploy]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          ref: main
+      - name: 保存部署结果到仓库
+        env:
+          BUILD_RESULT: ${{ needs.build.result }}
+          DEPLOY_RESULT: ${{ needs.deploy.result }}
+          RUN_ID: ${{ github.run_id }}
+          SOURCE_SHA: ${{ github.sha }}
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import json, os
+          result = {
+            "run_id": os.environ["RUN_ID"],
+            "source_sha": os.environ["SOURCE_SHA"],
+            "build": os.environ["BUILD_RESULT"],
+            "deploy": os.environ["DEPLOY_RESULT"],
+            "result": "success" if os.environ["BUILD_RESULT"] == "success" and os.environ["DEPLOY_RESULT"] == "success" else "failure"
+          }
+          Path("status").mkdir(exist_ok=True)
+          Path("status/pages_deploy.json").write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add status/pages_deploy.json
+          if ! git diff --cached --quiet; then
+            git commit -m "记录 Pages 部署状态 [skip ci]"
+            git pull --rebase origin main
+            git push
+          fi
