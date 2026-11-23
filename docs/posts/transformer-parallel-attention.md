@@ -1,45 +1,35 @@
 ---
-title: Transformer 并行方式与 Attention 实现
-description: 从单卡计算到 TP、PP、DP、CP、EP，并理解 FlashAttention、PagedAttention、Ring Attention 与 NCCL 通信原理。
-outline: deep
+title: 并行方式
+description: Transformer 并行方式与 Attention 实现：从单卡计算到 TP、PP、DP、CP、EP，深入理解 FlashAttention、PagedAttention、Ring Attention 和 NCCL。
+sidebar: false
+aside: right
+outline: [2, 2]
+pageClass: asb-reading
+editLink: false
+lastUpdated: false
 ---
 
-<div class="asb-editorial-heading">DEEP DIVE / PARALLEL COMPUTING</div>
+<div class="asb-story-header">
+  <div class="asb-story-breadcrumb"><a href="/posts/">全部文章</a><span>/</span><span>Systems & Computing</span></div>
+  <div class="asb-editorial-heading"><span class="asb-pulse"></span>TECHNICAL NOTES <span class="asb-header-divider">/</span> PARALLEL COMPUTING</div>
+  <h1 id="并行方式" tabindex="-1">并行方式</h1>
+  <p class="asb-story-subtitle">Transformer 并行方式与 Attention 实现</p>
+  <p class="asb-story-deck">从单卡的 Attention 与 FFN 计算出发，沿着层、样本、Token、Head、特征和专家等切分轴，逐步理解多卡执行、注意力算法与集合通信。</p>
+  <div class="asb-story-meta"><span>人工智能 × 计算系统</span><span class="asb-meta-dot"></span><span>深度技术笔记</span><span class="asb-meta-dot"></span><a href="https://mcn1ijk3pml3.feishu.cn/wiki/Mujfwy0wsi0bjIkbReScJvhKn3M" target="_blank" rel="noopener noreferrer">飞书原文 ↗</a></div>
+</div>
 
-# Transformer 并行方式与 Attention 实现
-
-*从单卡计算、分布式切分轴到 Attention 算法与通信机制，沿着张量形状重新理解系统设计。*
-
-<figure class="asb-figure">
-<svg viewBox="0 0 880 230" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="从单卡 Transformer 到多卡并行策略的原创概念图">
-  <defs><linearGradient id="parallel-flow" x1="0" x2="1"><stop stop-color="#49c8a3"/><stop offset="1" stop-color="#6c9fe6"/></linearGradient></defs>
-  <rect x="12" y="38" width="220" height="151" rx="15" fill="none" stroke="#67c9af" stroke-opacity=".65"/>
-  <text x="32" y="67" font-family="sans-serif" fill="#6ce6bf" font-size="14" font-weight="700">01 / Single device</text>
-  <rect x="32" y="89" width="180" height="34" rx="7" fill="#268871" fill-opacity=".2" stroke="#3fbd9d"/>
-  <rect x="32" y="137" width="180" height="34" rx="7" fill="#3288b3" fill-opacity=".16" stroke="#559fc8"/>
-  <text x="122" y="112" fill="currentColor" font-size="13" text-anchor="middle">Attention</text>
-  <text x="122" y="160" fill="currentColor" font-size="13" text-anchor="middle">FFN</text>
-  <path d="M249 113 H309" stroke="url(#parallel-flow)" stroke-width="2" stroke-dasharray="6 5"/>
-  <path d="M302 107l8 6-8 6" stroke="#6ce6bf" fill="none" stroke-width="2"/>
-  <rect x="325" y="38" width="222" height="151" rx="15" fill="none" stroke="#67c9af" stroke-opacity=".65"/>
-  <text x="345" y="67" font-family="sans-serif" fill="#6ce6bf" font-size="14" font-weight="700">02 / Partition axes</text>
-  <g fill="#123b3b" stroke="#43bd9a"><rect x="344" y="90" width="60" height="31" rx="6"/><rect x="417" y="90" width="60" height="31" rx="6"/><rect x="490" y="90" width="40" height="31" rx="6"/><rect x="344" y="135" width="60" height="31" rx="6"/><rect x="417" y="135" width="60" height="31" rx="6"/><rect x="490" y="135" width="40" height="31" rx="6"/></g>
-  <g fill="#c6fff0" text-anchor="middle" font-size="12"><text x="374" y="110">TP</text><text x="447" y="110">PP</text><text x="510" y="110">DP</text><text x="374" y="155">CP</text><text x="447" y="155">EP</text><text x="510" y="155">SP</text></g>
-  <path d="M564 113 H624" stroke="url(#parallel-flow)" stroke-width="2" stroke-dasharray="6 5"/><path d="M617 107l8 6-8 6" stroke="#6ce6bf" fill="none" stroke-width="2"/>
-  <rect x="640" y="38" width="227" height="151" rx="15" fill="none" stroke="#67c9af" stroke-opacity=".65"/>
-  <text x="660" y="67" font-family="sans-serif" fill="#6ce6bf" font-size="14" font-weight="700">03 / Distributed execution</text>
-  <g fill="#244767" stroke="#6badd6"><rect x="663" y="88" width="76" height="37" rx="6"/><rect x="762" y="88" width="76" height="37" rx="6"/><rect x="663" y="140" width="76" height="37" rx="6"/><rect x="762" y="140" width="76" height="37" rx="6"/></g>
-  <g fill="#e6f8ff" font-size="12" text-anchor="middle"><text x="701" y="111">GPU 0</text><text x="800" y="111">GPU 1</text><text x="701" y="163">GPU 2</text><text x="800" y="163">GPU 3</text></g>
-  <path d="M740 106H761 M740 159H761 M700 126V139 M800 126V139" stroke="#76e4c1" stroke-width="1.7"/>
-</svg>
-<figcaption>原创概念图：从单卡 Transformer block 到并行切分轴，再到分布式执行。</figcaption>
+<figure class="asb-figure asb-figure--cover">
+  <a href="/diagrams/parallel-overview.svg" target="_blank" rel="noopener noreferrer" title="在新标签中查看 SVG 原图">
+    <img src="/diagrams/parallel-overview.svg" alt="并行方式的原创矢量概念图：从单卡 Transformer 的 Attention 和 FFN 到 TP、PP、DP、CP、EP、SP 切分轴，再到四张 GPU 的分布式执行" />
+  </a>
+  <figcaption><span>FIG. 01</span> 从单卡计算到分布式并行的六种切分方式 <a href="/diagrams/parallel-overview.svg" target="_blank" rel="noopener noreferrer" aria-label="放大查看原图">查看 SVG ↗</a></figcaption>
 </figure>
 
 从单卡的 Attention 和 FFN 公式出发，沿层、样本、token、head、特征和专家几个轴推导多卡形状，再看 FlashAttention、PagedAttention 和 Ring Attention 各自改变了哪一步。
 
 ## 一　单卡上的 Transformer block
 
-<figure class="asb-figure"><img src="/images/parallel/figure-1.svg" alt="飞书原始技术示意图 1" loading="lazy" /><figcaption>原文图 1 · Transformer 并行与 Attention 技术示意</figcaption></figure>
+<figure class="asb-figure asb-figure--source"><a href="/images/parallel/figure-1.svg" target="_blank" rel="noopener noreferrer" title="放大查看原文图 1"><img src="/images/parallel/figure-1.svg" alt="飞书原文技术示意图 1" loading="lazy" /></a><figcaption><span>SOURCE FIG. 01</span> 飞书原文技术图 · 点击可查看大图</figcaption></figure>
 
 设 X 的布局为 [B, S, H]。B 是 batch，S 是 token 数，H 是模型宽度，L 是 block 层数，F 是 FFN 中间宽度。Nₕ 是 MHA 的 head 数，Dₕ 是每个 head 的宽度，A = Nₕ · Dₕ 是合并后的 Attention 宽度。线性层的权重写成 [输入宽度, 输出宽度]，批和序列可展平为 M = B · S 行。前向公式省略 bias 和 dropout。
 
@@ -96,7 +86,7 @@ PP 把连续的一组完整 block 放到每个阶段。在未叠加 TP、SP 或 
 
 ### TP 在 Attention 里切 head 数
 
-<figure class="asb-figure"><img src="/images/parallel/figure-2.svg" alt="飞书原始技术示意图 2" loading="lazy" /><figcaption>原文图 2 · Transformer 并行与 Attention 技术示意</figcaption></figure>
+<figure class="asb-figure asb-figure--source"><a href="/images/parallel/figure-2.svg" target="_blank" rel="noopener noreferrer" title="放大查看原文图 2"><img src="/images/parallel/figure-2.svg" alt="飞书原文技术示意图 2" loading="lazy" /></a><figcaption><span>SOURCE FIG. 02</span> 飞书原文技术图 · 点击可查看大图</figcaption></figure>
 
 每个 rank 的 Q、K、V 权重按输出特征列切为 [H, A / T]，都处理完整 S 个 token。MHA 的每张卡负责 Nₕ / T 个完整 head，head 宽度 Dₕ 不变。本地分数形状为 [B, Nₕ / T, S, S]。本地 head 拼成 [M, A / T]，乘本地输出投影权重 [A / T, H] 得到 [M, H] 部分和。纯 TP 用 AllReduce 求和，TP+SP 用 ReduceScatter 求和并把 token 分回各卡。对 GQA/MQA，KV head 数比 Q head 少，KV 如何分布或复制要看实现。
 
@@ -128,7 +118,7 @@ $$
 
 求和沿 key 维进行。分子和分母同乘 exp(−m)，结果相同，并能避免指数上溢。掩码位置的权重为 0。下面的 Online Softmax 把跨所有可见 key 的归一化改成逐块更新。
 
-<figure class="asb-figure"><img src="/images/parallel/figure-3.svg" alt="飞书原始技术示意图 3" loading="lazy" /><figcaption>原文图 3 · Transformer 并行与 Attention 技术示意</figcaption></figure>
+<figure class="asb-figure asb-figure--source"><a href="/images/parallel/figure-3.svg" target="_blank" rel="noopener noreferrer" title="放大查看原文图 3"><img src="/images/parallel/figure-3.svg" alt="飞书原文技术示意图 3" loading="lazy" /></a><figcaption><span>SOURCE FIG. 03</span> 飞书原文技术图 · 点击可查看大图</figcaption></figure>
 
 $$
 \begin{aligned} m' &= \max(m,\; \max s_j) \\[5pt] \alpha &= e^{m-m'} \\[5pt] p_j &= e^{s_j-m'} \\[5pt] \ell' &= \alpha\,\ell + \sum p_j \\[5pt] a' &= \alpha\,a + p_j\,V_j \\[5pt] O &= \frac{a}{\ell} \end{aligned}
@@ -183,13 +173,13 @@ Q、K、V 按 tile 搬到片上，分数和概率就地消费，避免把完整 
 
 ### PagedAttention 管理推理 KV Cache
 
-<figure class="asb-figure"><img src="/images/parallel/figure-4.svg" alt="飞书原始技术示意图 4" loading="lazy" /><figcaption>原文图 4 · Transformer 并行与 Attention 技术示意</figcaption></figure>
+<figure class="asb-figure asb-figure--source"><a href="/images/parallel/figure-4.svg" target="_blank" rel="noopener noreferrer" title="放大查看原文图 4"><img src="/images/parallel/figure-4.svg" alt="飞书原文技术示意图 4" loading="lazy" /></a><figcaption><span>SOURCE FIG. 04</span> 飞书原文技术图 · 点击可查看大图</figcaption></figure>
 
 将你提到的“配置的 Attention”按 PagedAttention 理解。若每个 KV block 容纳 J 个 token，逻辑位置 t 的块号是 floor(t/J)，块内偏移是 t mod J。块表把逻辑块号映射到物理块，物理块可不连续。请求增长时按需申请，支持前缀共享，减少碎片和预留浪费。每个有效 token 的 KV payload 由模型结构和精度决定。
 
 ### Ring Attention 是 CP 的一种实现
 
-<figure class="asb-figure"><img src="/images/parallel/figure-5.svg" alt="飞书原始技术示意图 5" loading="lazy" /><figcaption>原文图 5 · Transformer 并行与 Attention 技术示意</figcaption></figure>
+<figure class="asb-figure asb-figure--source"><a href="/images/parallel/figure-5.svg" target="_blank" rel="noopener noreferrer" title="放大查看原文图 5"><img src="/images/parallel/figure-5.svg" alt="飞书原文技术示意图 5" loading="lazy" /></a><figcaption><span>SOURCE FIG. 05</span> 飞书原文技术图 · 点击可查看大图</figcaption></figure>
 
 设 CP 组有 C 个 rank。rank r 保留本地 Qᵣ，大小是 [B, S / C, Nₕ, Dₕ]，并持有自己的 Kᵣ、Vᵣ。每轮用当前 K、V 块计算局部 Attention，同时把 K、V 转给环上的邻居并接收下一块。mask 决定哪些 query-key 对有效。各 rank 用前面的 Online Softmax 合并各块的贡献，计算结束时只产生自己 query 分片的输出。
 
