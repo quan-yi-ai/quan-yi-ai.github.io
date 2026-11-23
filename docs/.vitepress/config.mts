@@ -17,7 +17,7 @@ export default defineConfig({
       '/posts/': [
         { text: '技术文章', items: [
           { text: '文章索引', link: '/posts/' },
-          { text: 'Transformer 并行方式与 Attention 实现', link: '/posts/transformer-parallel-attention' },
+          { text: '并行方式', link: '/posts/transformer-parallel-attention' },
           { text: 'AI & Machine Learning', link: '/posts/ai' },
           { text: 'Systems & Computing', link: '/posts/systems' },
           { text: 'Engineering', link: '/posts/engineering' },
