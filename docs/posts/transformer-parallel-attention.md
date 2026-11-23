@@ -10,17 +10,15 @@ lastUpdated: false
 ---
 
 <div class="asb-story-header">
-  <div class="asb-story-breadcrumb"><a href="/posts/">全部文章</a><span>/</span><span>Systems & Computing</span></div>
+  <div class="asb-story-breadcrumb"><a href="/posts/">← 返回文章列表</a></div>
   <h1 id="并行方式" tabindex="-1">并行方式</h1>
   <p class="asb-story-subtitle">Transformer 并行方式与 Attention 实现</p>
   <p class="asb-story-deck">从单卡的 Attention 与 FFN 计算出发，沿着层、样本、Token、Head、特征和专家等切分轴，逐步理解多卡执行、注意力算法与集合通信。</p>
 </div>
 
 <figure class="asb-figure asb-figure--cover">
-  <a href="/diagrams/parallel-overview.svg" target="_blank" rel="noopener noreferrer" title="在新标签中查看 SVG 原图">
-    <img src="/diagrams/parallel-overview.svg" alt="并行方式的原创矢量概念图：从单卡 Transformer 的 Attention 和 FFN 到 TP、PP、DP、CP、EP、SP 切分轴，再到四张 GPU 的分布式执行" />
-  </a>
-  <figcaption><span>FIG. 01</span> 从单卡计算到分布式并行的六种切分方式 <a href="/diagrams/parallel-overview.svg" target="_blank" rel="noopener noreferrer" aria-label="放大查看原图">查看 SVG ↗</a></figcaption>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大图片：并行方式的原创矢量概念图：从单卡 Transformer 的 Attention 和 FFN 到 TP、PP、DP、CP、EP、SP 切分轴，再到四张 GPU 的分布式执行"><img src="/diagrams/parallel-overview.svg" alt="并行方式的原创矢量概念图：从单卡 Transformer 的 Attention 和 FFN 到 TP、PP、DP、CP、EP、SP 切分轴，再到四张 GPU 的分布式执行" /></button>
+  <figcaption>从单卡计算到分布式并行的六种切分方式</figcaption>
 </figure>
 
 本文先建立单卡 Transformer 的计算基准，再介绍切分轴及其通信代价，之后依次讨论 Attention 的片上 IO 优化、跨 GPU Attention 和 KV Cache 管理，最后回到多维并行与 NCCL 通信。
@@ -29,7 +27,10 @@ lastUpdated: false
 
 ## 一　单卡上的 Transformer block
 
-<figure class="asb-figure asb-figure--source"><a href="/images/parallel/figure-1.svg" target="_blank" rel="noopener noreferrer" title="放大查看技术图 1"><img src="/images/parallel/figure-1.svg" alt="技术示意图 1" loading="lazy" /></a><figcaption><span>FIG. 01</span> 技术示意图 · 点击可查看大图</figcaption></figure>
+<figure class="asb-figure asb-figure--source">
+  <button class="asb-zoom-trigger" type="button" aria-label="放大图片：技术示意图 1"><img src="/images/parallel/figure-1.svg" alt="技术示意图 1" loading="lazy" /></button>
+  <figcaption>单卡 Transformer 的 Attention 与 FFN 计算流程</figcaption>
+</figure>
 
 设 X 的布局为 [B, S, H]。B 是 batch，S 是 token 数，H 是模型宽度，L 是 block 层数，F 是 FFN 中间宽度。Nₕ 是 MHA 的 head 数，Dₕ 是每个 head 的宽度，A = Nₕ · Dₕ 是合并后的 Attention 宽度。线性层的权重写成 [输入宽度, 输出宽度]，批和序列可展平为 M = B · S 行。前向公式省略 bias 和 dropout。
 
@@ -88,7 +89,10 @@ PP 把连续的一组完整 block 放到每个阶段。在未叠加 TP、SP 或 
 
 ### TP 在 Attention 里切 head 数
 
-<figure class="asb-figure asb-figure--source"><a href="/images/parallel/figure-2.svg" target="_blank" rel="noopener noreferrer" title="放大查看技术图 2"><img src="/images/parallel/figure-2.svg" alt="技术示意图 2" loading="lazy" /></a><figcaption><span>FIG. 02</span> 技术示意图 · 点击可查看大图</figcaption></figure>
+<figure class="asb-figure asb-figure--source">
+  <button class="asb-zoom-trigger" type="button" aria-label="放大图片：技术示意图 2"><img src="/images/parallel/figure-2.svg" alt="技术示意图 2" loading="lazy" /></button>
+  <figcaption>TP 下的 Attention Head 与矩阵投影分片</figcaption>
+</figure>
 
 每个 rank 的 Q、K、V 权重按输出特征列切为 [H, A / T]，都处理完整 S 个 token。MHA 的每张卡负责 Nₕ / T 个完整 head，head 宽度 Dₕ 不变。本地分数形状为 [B, Nₕ / T, S, S]。本地 head 拼成 [M, A / T]，乘本地输出投影权重 [A / T, H] 得到 [M, H] 部分和。纯 TP 用 AllReduce 求和，TP+SP 用 ReduceScatter 求和并把 token 分回各卡。对 GQA/MQA，KV head 数比 Q head 少，KV 如何分布或复制要看实现。
 
@@ -120,7 +124,10 @@ $$
 
 求和沿 key 维进行。分子和分母同乘 exp(−m)，结果相同，并能避免指数上溢。掩码位置的权重为 0。下面的 Online Softmax 把跨所有可见 key 的归一化改成逐块更新。
 
-<figure class="asb-figure asb-figure--source"><a href="/images/parallel/figure-3.svg" target="_blank" rel="noopener noreferrer" title="放大查看技术图 3"><img src="/images/parallel/figure-3.svg" alt="技术示意图 3" loading="lazy" /></a><figcaption><span>FIG. 03</span> 技术示意图 · 点击可查看大图</figcaption></figure>
+<figure class="asb-figure asb-figure--source">
+  <button class="asb-zoom-trigger" type="button" aria-label="放大图片：技术示意图 3"><img src="/images/parallel/figure-3.svg" alt="技术示意图 3" loading="lazy" /></button>
+  <figcaption>Online Softmax 按块更新归一化统计量</figcaption>
+</figure>
 
 $$
 \begin{aligned} m' &= \max(m,\; \max s_j) \\[5pt] \alpha &= e^{m-m'} \\[5pt] p_j &= e^{s_j-m'} \\[5pt] \ell' &= \alpha\,\ell + \sum p_j \\[5pt] a' &= \alpha\,a + \sum_j p_j\,V_j \\[5pt] O &= \frac{a'}{\ell'} \end{aligned}
@@ -177,7 +184,10 @@ Q、K、V 按 tile 搬到片上，分数和概率就地消费，避免把完整 
 
 ### Ring Attention 是 CP 的一种实现
 
-<figure class="asb-figure asb-figure--source"><a href="/images/parallel/figure-5.svg" target="_blank" rel="noopener noreferrer" title="放大查看技术图 5"><img src="/images/parallel/figure-5.svg" alt="技术示意图 5" loading="lazy" /></a><figcaption><span>FIG. 05</span> 技术示意图 · 点击可查看大图</figcaption></figure>
+<figure class="asb-figure asb-figure--source">
+  <button class="asb-zoom-trigger" type="button" aria-label="放大图片：技术示意图 5"><img src="/images/parallel/figure-5.svg" alt="技术示意图 5" loading="lazy" /></button>
+  <figcaption>Context Parallelism 中的 Ring Attention 数据交换</figcaption>
+</figure>
 
 设 CP 组有 C 个 rank。rank r 保留本地 Qᵣ，大小是 [B, S / C, Nₕ, Dₕ]，并持有自己的 Kᵣ、Vᵣ。每轮用当前 K、V 块计算局部 Attention，同时把 K、V 转给环上的邻居并接收下一块。mask 决定哪些 query-key 对有效。各 rank 用前面的 Online Softmax 合并各块的贡献，计算结束时只产生自己 query 分片的输出。
 
@@ -201,8 +211,8 @@ $$
 这使得 Attention 结果能够按树形结构逐层归约：设备不必传输完整的历史 K/V，只需交换与当前 Query 对应的归约统计量（具体实现还需计入 Query 的分发等开销）。归约时仍需处理因果掩码、数值稳定性和全掩码行等情况。
 
 <figure class="asb-figure asb-figure--cover">
-<a href="/diagrams/ring-vs-tree-attention.svg" target="_blank" rel="noopener noreferrer" title="在新标签中查看 SVG 原图"><img src="/diagrams/ring-vs-tree-attention.svg" alt="Ring Attention 通过环形传递 KV 分片；Tree Attention 计算局部统计量后执行树形归约的原创矢量对比图" loading="lazy" /></a>
-<figcaption><span>FIG. 07</span> Ring 与 Tree Attention 的通信思路对比 <a href="/diagrams/ring-vs-tree-attention.svg" target="_blank" rel="noopener noreferrer">查看 SVG ↗</a></figcaption>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大图片：Ring Attention 通过环形传递 KV 分片；Tree Attention 计算局部统计量后执行树形归约的原创矢量对比图"><img src="/diagrams/ring-vs-tree-attention.svg" alt="Ring Attention 通过环形传递 KV 分片；Tree Attention 计算局部统计量后执行树形归约的原创矢量对比图" loading="lazy" /></button>
+  <figcaption>Ring 与 Tree Attention 的通信思路对比</figcaption>
 </figure>
 
 两者不能简单判断“哪个总是更快”：Ring Attention 的长序列训练 / prefill 路径与 Tree Attention 重点优化的长上下文 decode 路径并不完全相同，性能也受互连拓扑、序列长度、批大小和实现细节影响。
@@ -227,7 +237,10 @@ $$
 
 ### PagedAttention 管理推理 KV Cache
 
-<figure class="asb-figure asb-figure--source"><a href="/images/parallel/figure-4.svg" target="_blank" rel="noopener noreferrer" title="放大查看技术图 4"><img src="/images/parallel/figure-4.svg" alt="技术示意图 4" loading="lazy" /></a><figcaption><span>FIG. 04</span> 技术示意图 · 点击可查看大图</figcaption></figure>
+<figure class="asb-figure asb-figure--source">
+  <button class="asb-zoom-trigger" type="button" aria-label="放大图片：技术示意图 4"><img src="/images/parallel/figure-4.svg" alt="技术示意图 4" loading="lazy" /></button>
+  <figcaption>PagedAttention 的 KV Cache 块映射</figcaption>
+</figure>
 
 PagedAttention 关注的是 KV Cache 的**逻辑位置与物理存储块之间的映射**，不是新的一种跨 GPU Attention 并行轴。若每个 KV block 容纳 J 个 token，逻辑位置 t 的块号是 floor(t/J)，块内偏移是 t mod J。块表把逻辑块号映射到物理块，物理块可不连续。请求增长时按需申请，支持前缀共享，减少碎片和预留浪费。每个有效 token 的 KV payload 由模型结构和精度决定。
 
