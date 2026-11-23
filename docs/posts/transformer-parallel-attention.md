@@ -203,43 +203,17 @@ Q、K、V 按 tile 搬到片上，分数和概率就地消费，避免把完整 
 
 ## NCCL中执行一次All Reduce内部进行的7个阶段
 
-::: warning 原文复杂表格 1
-本处为飞书结构化表格；单元格文字仍在补充提取中。请参照[飞书原文](https://mcn1ijk3pml3.feishu.cn/wiki/Mujfwy0wsi0bjIkbReScJvhKn3M)核对。
-:::
+**NCCL AllReduce：从初始化到数据传输的关键环节**
 
-初始化（建链）
-
-建立通信域，所有GPU互相知道彼此的存在
-
-TCP 单节点？
-
-拓扑发现
-
-探测连接方式 NVLink？PCIe？IB？
-
-ring/tree构建
-
-排通信顺序 谁连谁
-
-channel分配
-
-数据切chunk，多路并行传
-
-每个chunk走一个channel
-
-proxy线程
-
-每个channel启动一个收发线程
-
-QP建立
-
-建RDMA连接，端点就绪
-
-TCP
-
-RDMA传输
-
-数据收发，kernel bypass
+| 阶段 | 核心操作 | 备注 |
+| --- | --- | --- |
+| 初始化（建链） | 建立通信域，所有GPU互相知道彼此的存在 | TCP 单节点？ |
+| 拓扑发现 | 探测连接方式 NVLink？PCIe？IB？ |  |
+| ring/tree构建 | 排通信顺序 谁连谁 |  |
+| channel分配 | 数据切chunk，多路并行传 | 每个chunk走一个channel |
+| proxy线程 | 每个channel启动一个收发线程 |  |
+| QP建立 | 建RDMA连接，端点就绪 | TCP |
+| RDMA传输 | 数据收发，kernel bypass |  |
 
 ::: warning 原文嵌入电子表格 3
 此处在飞书原文中为嵌入式电子表格。当前转换流程尚未取得表格单元格数据，暂时无法保证表格无损还原。可先[查看飞书原文](https://mcn1ijk3pml3.feishu.cn/wiki/Mujfwy0wsi0bjIkbReScJvhKn3M)。
@@ -268,9 +242,9 @@ SGLang的三级缓存
 
 参考资料
 
-[Megatron Core 并行指南](https%3A%2F%2Fdocs.nvidia.com%2Fmegatron-core%2Fdeveloper-guide%2Flatest%2Fuser-guide%2Fparallelism-guide.html) · [Megatron Core 上下文并行](https%3A%2F%2Fdocs.nvidia.com%2Fmegatron-core%2Fdeveloper-guide%2Flatest%2Fuser-guide%2Ffeatures%2Fcontext_parallel.html) · [Megatron Core MoE Dispatcher](https%3A%2F%2Fdocs.nvidia.com%2Fmegatron-core%2Fdeveloper-guide%2Flatest%2Fapidocs%2Fcore%2Fcore.transformer.moe.token_dispatcher.html)
+[Megatron Core 并行指南](https://docs.nvidia.com/megatron-core/developer-guide/latest/user-guide/parallelism-guide.html) · [Megatron Core 上下文并行](https://docs.nvidia.com/megatron-core/developer-guide/latest/user-guide/features/context_parallel.html) · [Megatron Core MoE Dispatcher](https://docs.nvidia.com/megatron-core/developer-guide/latest/apidocs/core/core.transformer.moe.token_dispatcher.html)
 
-[GQA](https%3A%2F%2Farxiv.org%2Fabs%2F2305.13245) · [DeepSeek-V2 与 MLA](https%3A%2F%2Farxiv.org%2Fabs%2F2405.04434) · [FlashAttention](https%3A%2F%2Farxiv.org%2Fabs%2F2205.14135) · [FA2](https%3A%2F%2Farxiv.org%2Fabs%2F2307.08691) · [FA3](https%3A%2F%2Farxiv.org%2Fabs%2F2407.08608) · [FA4](https%3A%2F%2Farxiv.org%2Fabs%2F2603.05451)
+[GQA](https://arxiv.org/abs/2305.13245) · [DeepSeek-V2 与 MLA](https://arxiv.org/abs/2405.04434) · [FlashAttention](https://arxiv.org/abs/2205.14135) · [FA2](https://arxiv.org/abs/2307.08691) · [FA3](https://arxiv.org/abs/2407.08608) · [FA4](https://arxiv.org/abs/2603.05451)
 
-[PagedAttention](https%3A%2F%2Farxiv.org%2Fabs%2F2309.06180) · [Ring Attention](https%3A%2F%2Farxiv.org%2Fabs%2F2310.01889) · [DeepSpeed Ulysses](https%3A%2F%2Farxiv.org%2Fabs%2F2309.14509)
+[PagedAttention](https://arxiv.org/abs/2309.06180) · [Ring Attention](https://arxiv.org/abs/2310.01889) · [DeepSpeed Ulysses](https://arxiv.org/abs/2309.14509)
 
