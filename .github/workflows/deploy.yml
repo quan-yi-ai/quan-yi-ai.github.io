@@ -1,5 +1,5 @@
 name: Deploy VitePress to GitHub Pages
-# Pages 已切换为 GitHub Actions，重新触发站点发布
+# 图解配色统一完成：重新执行完整站点构建和发布验收
 
 on:
   push:
