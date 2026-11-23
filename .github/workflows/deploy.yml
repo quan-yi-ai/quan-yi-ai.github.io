@@ -99,6 +99,20 @@ jobs:
               live["svg_is_vector"] = "<svg" in diagram and "<image" not in diagram and "data:image" not in diagram
           except Exception as exc:
             live["article_check_error"] = type(exc).__name__
+          # Additional validation for the TransferQueue foundation article.
+          try:
+            url = "https://quan-yi-ai.github.io/posts/transferqueue?check=" + os.environ["RUN_ID"]
+            with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent":"ASB-Deployment-Check"}), timeout=15) as response:
+              page = response.read(500000).decode("utf-8", errors="replace")
+              live["transferqueue_http_status"] = response.status
+              live["transferqueue_article_present"] = "TransferQueue" in page and "asb-story-header" in page
+              live["transferqueue_figure_count"] = page.count("tq-figure-")
+            diagram_url = "https://quan-yi-ai.github.io/diagrams/tq-figure-1.svg"
+            with urllib.request.urlopen(diagram_url, timeout=15) as response:
+              svg = response.read(100000).decode("utf-8", errors="replace")
+              live["transferqueue_svg_vector"] = response.status == 200 and "<svg" in svg and "<image" not in svg and "base64," not in svg
+          except Exception as exc:
+            live["transferqueue_check_error"] = type(exc).__name__
           result = {
             "live_site": live,
             "run_id": os.environ["RUN_ID"],
