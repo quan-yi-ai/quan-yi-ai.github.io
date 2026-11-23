@@ -125,8 +125,8 @@ $$
 求和沿 key 维进行。分子和分母同乘 exp(−m)，结果相同，并能避免指数上溢。掩码位置的权重为 0。下面的 Online Softmax 把跨所有可见 key 的归一化改成逐块更新。
 
 <figure class="asb-figure asb-figure--source">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大图片：技术示意图 3"><img src="/images/parallel/figure-3.svg" alt="技术示意图 3" loading="lazy" /></button>
-  <figcaption>Online Softmax 按块更新归一化统计量</figcaption>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大图片：技术示意图 3"><img src="/diagrams/online-softmax.svg" alt="Online Softmax 逐块遍历 KV Tile，并更新运行最大值、指数和与加权输出的原创矢量数据流图" loading="lazy" /></button>
+  <figcaption>Online Softmax：逐块扫描 KV 并维护归一化状态</figcaption>
 </figure>
 
 $$
