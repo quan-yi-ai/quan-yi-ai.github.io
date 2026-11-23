@@ -15,7 +15,7 @@ lastUpdated: false
   <h1 id="并行方式" tabindex="-1">并行方式</h1>
   <p class="asb-story-subtitle">Transformer 并行方式与 Attention 实现</p>
   <p class="asb-story-deck">从单卡的 Attention 与 FFN 计算出发，沿着层、样本、Token、Head、特征和专家等切分轴，逐步理解多卡执行、注意力算法与集合通信。</p>
-  <div class="asb-story-meta"><span>人工智能 × 计算系统</span><span class="asb-meta-dot"></span><span>深度技术笔记</span><span class="asb-meta-dot"></span><a href="https://mcn1ijk3pml3.feishu.cn/wiki/Mujfwy0wsi0bjIkbReScJvhKn3M" target="_blank" rel="noopener noreferrer">飞书原文 ↗</a></div>
+  <div class="asb-story-meta"><span>人工智能 × 计算系统</span><span class="asb-meta-dot"></span><span>深度技术笔记</span></div>
 </div>
 
 <figure class="asb-figure asb-figure--cover">
@@ -31,7 +31,7 @@ lastUpdated: false
 
 ## 一　单卡上的 Transformer block
 
-<figure class="asb-figure asb-figure--source"><a href="/images/parallel/figure-1.svg" target="_blank" rel="noopener noreferrer" title="放大查看原文图 1"><img src="/images/parallel/figure-1.svg" alt="飞书原文技术示意图 1" loading="lazy" /></a><figcaption><span>SOURCE FIG. 01</span> 飞书原文技术图 · 点击可查看大图</figcaption></figure>
+<figure class="asb-figure asb-figure--source"><a href="/images/parallel/figure-1.svg" target="_blank" rel="noopener noreferrer" title="放大查看技术图 1"><img src="/images/parallel/figure-1.svg" alt="技术示意图 1" loading="lazy" /></a><figcaption><span>FIG. 01</span> 技术示意图 · 点击可查看大图</figcaption></figure>
 
 设 X 的布局为 [B, S, H]。B 是 batch，S 是 token 数，H 是模型宽度，L 是 block 层数，F 是 FFN 中间宽度。Nₕ 是 MHA 的 head 数，Dₕ 是每个 head 的宽度，A = Nₕ · Dₕ 是合并后的 Attention 宽度。线性层的权重写成 [输入宽度, 输出宽度]，批和序列可展平为 M = B · S 行。前向公式省略 bias 和 dropout。
 
@@ -57,7 +57,7 @@ $$
 
 T、P、D、C、G 分别表示 TP、PP、DP、CP、EP 的并行度。b 是 microbatch 的样本数。下表每行独立看，使用均匀切分，SP 是 Megatron 中与 TP 配合的用法。形状以每个 rank 为单位。
 
-<div class="asb-table-kicker">原文嵌入表格 1 · 已恢复单元格数据</div>
+<div class="asb-table-kicker">并行策略与张量形状对照</div>
 
 | 并行方式与切分轴 | 每个 rank 的局部对象 |
 | --- | --- |
@@ -90,7 +90,7 @@ PP 把连续的一组完整 block 放到每个阶段。在未叠加 TP、SP 或 
 
 ### TP 在 Attention 里切 head 数
 
-<figure class="asb-figure asb-figure--source"><a href="/images/parallel/figure-2.svg" target="_blank" rel="noopener noreferrer" title="放大查看原文图 2"><img src="/images/parallel/figure-2.svg" alt="飞书原文技术示意图 2" loading="lazy" /></a><figcaption><span>SOURCE FIG. 02</span> 飞书原文技术图 · 点击可查看大图</figcaption></figure>
+<figure class="asb-figure asb-figure--source"><a href="/images/parallel/figure-2.svg" target="_blank" rel="noopener noreferrer" title="放大查看技术图 2"><img src="/images/parallel/figure-2.svg" alt="技术示意图 2" loading="lazy" /></a><figcaption><span>FIG. 02</span> 技术示意图 · 点击可查看大图</figcaption></figure>
 
 每个 rank 的 Q、K、V 权重按输出特征列切为 [H, A / T]，都处理完整 S 个 token。MHA 的每张卡负责 Nₕ / T 个完整 head，head 宽度 Dₕ 不变。本地分数形状为 [B, Nₕ / T, S, S]。本地 head 拼成 [M, A / T]，乘本地输出投影权重 [A / T, H] 得到 [M, H] 部分和。纯 TP 用 AllReduce 求和，TP+SP 用 ReduceScatter 求和并把 token 分回各卡。对 GQA/MQA，KV head 数比 Q head 少，KV 如何分布或复制要看实现。
 
@@ -122,7 +122,7 @@ $$
 
 求和沿 key 维进行。分子和分母同乘 exp(−m)，结果相同，并能避免指数上溢。掩码位置的权重为 0。下面的 Online Softmax 把跨所有可见 key 的归一化改成逐块更新。
 
-<figure class="asb-figure asb-figure--source"><a href="/images/parallel/figure-3.svg" target="_blank" rel="noopener noreferrer" title="放大查看原文图 3"><img src="/images/parallel/figure-3.svg" alt="飞书原文技术示意图 3" loading="lazy" /></a><figcaption><span>SOURCE FIG. 03</span> 飞书原文技术图 · 点击可查看大图</figcaption></figure>
+<figure class="asb-figure asb-figure--source"><a href="/images/parallel/figure-3.svg" target="_blank" rel="noopener noreferrer" title="放大查看技术图 3"><img src="/images/parallel/figure-3.svg" alt="技术示意图 3" loading="lazy" /></a><figcaption><span>FIG. 03</span> 技术示意图 · 点击可查看大图</figcaption></figure>
 
 $$
 \begin{aligned} m' &= \max(m,\; \max s_j) \\[5pt] \alpha &= e^{m-m'} \\[5pt] p_j &= e^{s_j-m'} \\[5pt] \ell' &= \alpha\,\ell + \sum p_j \\[5pt] a' &= \alpha\,a + \sum_j p_j\,V_j \\[5pt] O &= \frac{a'}{\ell'} \end{aligned}
@@ -154,7 +154,7 @@ for Q_i in query_tiles(Q):
 
 Q、K、V 按 tile 搬到片上，分数和概率就地消费，避免把完整 [S, S] 写入 HBM。密集 Attention 仍有平方级计算。伪代码说明的是分块和归一化原则，实际 kernel 会改变循环顺序、并行方式和流水排程。
 
-<div class="asb-table-kicker">原文嵌入表格 2 · 已恢复单元格数据</div>
+<div class="asb-table-kicker">FlashAttention 各版本的核心优化</div>
 
 | 版本 | 主要改变 |
 | --- | --- |
@@ -179,7 +179,7 @@ Q、K、V 按 tile 搬到片上，分数和概率就地消费，避免把完整 
 
 ### Ring Attention 是 CP 的一种实现
 
-<figure class="asb-figure asb-figure--source"><a href="/images/parallel/figure-5.svg" target="_blank" rel="noopener noreferrer" title="放大查看原文图 5"><img src="/images/parallel/figure-5.svg" alt="飞书原文技术示意图 5" loading="lazy" /></a><figcaption><span>SOURCE FIG. 05</span> 飞书原文技术图 · 点击可查看大图</figcaption></figure>
+<figure class="asb-figure asb-figure--source"><a href="/images/parallel/figure-5.svg" target="_blank" rel="noopener noreferrer" title="放大查看技术图 5"><img src="/images/parallel/figure-5.svg" alt="技术示意图 5" loading="lazy" /></a><figcaption><span>FIG. 05</span> 技术示意图 · 点击可查看大图</figcaption></figure>
 
 设 CP 组有 C 个 rank。rank r 保留本地 Qᵣ，大小是 [B, S / C, Nₕ, Dₕ]，并持有自己的 Kᵣ、Vᵣ。每轮用当前 K、V 块计算局部 Attention，同时把 K、V 转给环上的邻居并接收下一块。mask 决定哪些 query-key 对有效。各 rank 用前面的 Online Softmax 合并各块的贡献，计算结束时只产生自己 query 分片的输出。
 
@@ -229,13 +229,13 @@ $$
 
 ### PagedAttention 管理推理 KV Cache
 
-<figure class="asb-figure asb-figure--source"><a href="/images/parallel/figure-4.svg" target="_blank" rel="noopener noreferrer" title="放大查看原文图 4"><img src="/images/parallel/figure-4.svg" alt="飞书原文技术示意图 4" loading="lazy" /></a><figcaption><span>SOURCE FIG. 04</span> 飞书原文技术图 · 点击可查看大图</figcaption></figure>
+<figure class="asb-figure asb-figure--source"><a href="/images/parallel/figure-4.svg" target="_blank" rel="noopener noreferrer" title="放大查看技术图 4"><img src="/images/parallel/figure-4.svg" alt="技术示意图 4" loading="lazy" /></a><figcaption><span>FIG. 04</span> 技术示意图 · 点击可查看大图</figcaption></figure>
 
 PagedAttention 关注的是 KV Cache 的**逻辑位置与物理存储块之间的映射**，不是新的一种跨 GPU Attention 并行轴。若每个 KV block 容纳 J 个 token，逻辑位置 t 的块号是 floor(t/J)，块内偏移是 t mod J。块表把逻辑块号映射到物理块，物理块可不连续。请求增长时按需申请，支持前缀共享，减少碎片和预留浪费。每个有效 token 的 KV payload 由模型结构和精度决定。
 
 ### LMCache、Mooncake 与 HiCache：缓存管理的不同层次
 
-<div class="asb-table-kicker">三种 KV Cache 相关方案 · 原文表格</div>
+<div class="asb-table-kicker">KV Cache 相关系统对比</div>
 
 | 项目 | 是什么 | 层级 |
 | --- | --- | --- |
@@ -272,13 +272,13 @@ PagedAttention 关注的是 KV Cache 的**逻辑位置与物理存储块之间�
 
 ## 八　NCCL 集合通信：从拓扑到数据传输
 
-以下保留原文整理的关键环节，帮助把前面 AllGather、ReduceScatter、AllReduce 的逻辑通信映射到实际执行。**注意：这不是一次 AllReduce 必定按顺序执行的七个固定阶段**。初始化、拓扑发现、协议选择、通道组织、GPU Kernel 与网络传输在不同硬件和协议下的执行路径可能不同。
+以下列出 NCCL 的一些关键环节，帮助把前面 AllGather、ReduceScatter、AllReduce 的逻辑通信映射到实际执行。**注意：这不是一次 AllReduce 必定按顺序执行的七个固定阶段**。初始化、拓扑发现、协议选择、通道组织、GPU Kernel 与网络传输在不同硬件和协议下的执行路径可能不同。
 
-**原文整理的 NCCL 环节（含待核对项）**
+**NCCL 通信的典型环节（部分细节仍需核对）**
 
 | 阶段 | 核心操作 | 备注 |
 | --- | --- | --- |
-| 初始化（建链） | 初始化通信域及连接资源 | 原文“TCP 单节点？”有待进一步核对 |
+| 初始化（建链） | 初始化通信域及连接资源 | 单节点通信路径取决于硬件互连，不一定使用 TCP |
 | 拓扑发现 | 发现 GPU 和网络互连拓扑 | NVLink、PCIe、InfiniBand 等 |
 | Ring/Tree 等通信组织 | 根据算法和拓扑组织通信关系 | 具体选择因规模与硬件而异 |
 | channel分配 | 数据切chunk，多路并行传 | 每个chunk走一个channel |
