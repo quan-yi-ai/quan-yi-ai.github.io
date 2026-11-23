@@ -1,52 +1,52 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1120" height="450" viewBox="0 0 1120 450" role="img" aria-labelledby="title description">
 <title id="title">Ring Attention 与 Tree Attention 的通信方式对比</title>
 <desc id="description">左侧 Ring Attention，GPU 沿环形传递 K/V 分片并处理局部 Q。右侧 Tree Attention，各 GPU 对本地 K/V 计算局部 Attention 统计量，通过树形结构逐层归约后得到输出。</desc>
-<defs><linearGradient id="background" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#0b1720"/><stop offset="1" stop-color="#14232e"/></linearGradient>
-<linearGradient id="stroke" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#70dfb9"/><stop offset="1" stop-color="#77bce2"/></linearGradient>
-<marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M1 1L6 4L1 7" fill="none" stroke="#82e8c7" stroke-width="1.3"/></marker>
-<pattern id="grid" width="26" height="26" patternUnits="userSpaceOnUse"><path d="M26 0H0V26" fill="none" stroke="#7db6ad" stroke-opacity=".07"/></pattern>
+<defs><linearGradient id="background" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ffffff"/><stop offset="1" stop-color="#ffffff"/></linearGradient>
+<linearGradient id="stroke" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#f0f7ff"/><stop offset="1" stop-color="#f0f7ff"/></linearGradient>
+<marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M1 1L6 4L1 7" fill="none" stroke="#4583bd" stroke-width="1.3"/></marker>
+<pattern id="grid" width="26" height="26" patternUnits="userSpaceOnUse"><path d="M26 0H0V26" fill="none" stroke="#4583bd" stroke-opacity=".07"/></pattern>
 </defs>
 <rect width="1120" height="450" rx="18" fill="url(#background)"/><rect width="1120" height="450" rx="18" fill="url(#grid)"/>
-<line x1="560" y1="62" x2="560" y2="410" stroke="#608888" stroke-opacity=".3" stroke-dasharray="5 8"/>
+<line x1="560" y1="62" x2="560" y2="410" stroke="#4583bd" stroke-opacity=".3" stroke-dasharray="5 8"/>
 <g font-family="system-ui, PingFang SC, sans-serif">
-<text x="42" y="37" font-size="12" fill="#84e8c7" letter-spacing="2">DISTRIBUTED ATTENTION</text>
-<text x="1078" y="37" font-size="12" text-anchor="end" fill="#8faeb9">COMMUNICATION PATTERNS / SCHEMATIC</text>
-<text x="50" y="96" font-size="27" font-weight="700" fill="#f0fcf8">Ring Attention</text>
-<text x="50" y="121" font-size="14" fill="#9ab5ba">沿环传递 K/V 分片 · 局部 Q 累积输出</text>
-<text x="610" y="96" font-size="27" font-weight="700" fill="#f0fcf8">Tree Attention</text>
-<text x="610" y="121" font-size="14" fill="#9ab5ba">本地计算统计量 · 逐层归约结果</text>
+<text x="42" y="37" font-size="12" fill="#087f55" letter-spacing="2">DISTRIBUTED ATTENTION</text>
+<text x="1078" y="37" font-size="12" text-anchor="end" fill="#476078">COMMUNICATION PATTERNS / SCHEMATIC</text>
+<text x="50" y="96" font-size="27" font-weight="700" fill="#172d43">Ring Attention</text>
+<text x="50" y="121" font-size="14" fill="#172d43">沿环传递 K/V 分片 · 局部 Q 累积输出</text>
+<text x="610" y="96" font-size="27" font-weight="700" fill="#172d43">Tree Attention</text>
+<text x="610" y="121" font-size="14" fill="#172d43">本地计算统计量 · 逐层归约结果</text>
 </g>
-<g stroke="#65aab0" fill="#183740" stroke-width="1.4">
+<g stroke="#4583bd" fill="#def8e9" stroke-width="1.4">
 <rect x="98" y="171" width="134" height="62" rx="10"/><rect x="324" y="171" width="134" height="62" rx="10"/>
 <rect x="324" y="281" width="134" height="62" rx="10"/><rect x="98" y="281" width="134" height="62" rx="10"/>
 </g>
-<g font-family="system-ui, sans-serif" font-weight="650" text-anchor="middle" font-size="16" fill="#e5f8fb">
+<g font-family="system-ui, sans-serif" font-weight="650" text-anchor="middle" font-size="16" fill="#172d43">
 <text x="165" y="196">GPU 0</text><text x="391" y="196">GPU 1</text><text x="391" y="306">GPU 2</text><text x="165" y="306">GPU 3</text></g>
-<g font-family="ui-monospace, monospace" text-anchor="middle" font-size="12" fill="#80e9c6">
+<g font-family="ui-monospace, monospace" text-anchor="middle" font-size="12" fill="#087f55">
 <text x="165" y="215">Q₀ · K₀/V₀</text><text x="391" y="215">Q₁ · K₁/V₁</text><text x="391" y="325">Q₂ · K₂/V₂</text><text x="165" y="325">Q₃ · K₃/V₃</text></g>
 <g fill="none" stroke="url(#stroke)" stroke-width="2.5" marker-end="url(#arrow)">
 <path d="M234 198H312"/><path d="M391 237V270"/><path d="M321 312H243"/><path d="M165 278V245"/></g>
-<text x="276" y="183" font-family="monospace" fill="#96c4cd" font-size="12" text-anchor="middle">K/V</text>
-<text x="426" y="258" font-family="monospace" fill="#96c4cd" font-size="12">K/V</text>
-<text x="276" y="338" font-family="monospace" fill="#96c4cd" font-size="12" text-anchor="middle">K/V</text>
-<text x="122" y="259" font-family="monospace" fill="#96c4cd" font-size="12">K/V</text>
-<g stroke="#65aab0" fill="#183740" stroke-width="1.4">
+<text x="276" y="183" font-family="monospace" fill="#172d43" font-size="12" text-anchor="middle">K/V</text>
+<text x="426" y="258" font-family="monospace" fill="#172d43" font-size="12">K/V</text>
+<text x="276" y="338" font-family="monospace" fill="#172d43" font-size="12" text-anchor="middle">K/V</text>
+<text x="122" y="259" font-family="monospace" fill="#172d43" font-size="12">K/V</text>
+<g stroke="#4583bd" fill="#dfedff" stroke-width="1.4">
 <rect x="610" y="285" width="92" height="58" rx="8"/><rect x="730" y="285" width="92" height="58" rx="8"/>
 <rect x="850" y="285" width="92" height="58" rx="8"/><rect x="970" y="285" width="92" height="58" rx="8"/>
-<rect x="683" y="204" width="138" height="52" rx="9" fill="#1b4147" stroke="#55ae9b"/>
-<rect x="854" y="204" width="138" height="52" rx="9" fill="#1b4147" stroke="#55ae9b"/>
-<rect x="767" y="146" width="138" height="43" rx="9" fill="#205047" stroke="#7ddabb"/>
+<rect x="683" y="204" width="138" height="52" rx="9" fill="#fff0d9" stroke="#4583bd"/>
+<rect x="854" y="204" width="138" height="52" rx="9" fill="#eee4ff" stroke="#4583bd"/>
+<rect x="767" y="146" width="138" height="43" rx="9" fill="#ddf7f4" stroke="#4583bd"/>
 </g>
-<g font-family="system-ui, sans-serif" font-size="14" font-weight="650" fill="#e8fafa" text-anchor="middle">
+<g font-family="system-ui, sans-serif" font-size="14" font-weight="650" fill="#172d43" text-anchor="middle">
 <text x="656" y="307">GPU 0</text><text x="776" y="307">GPU 1</text><text x="896" y="307">GPU 2</text><text x="1016" y="307">GPU 3</text>
 <text x="752" y="236">Merge A</text><text x="923" y="236">Merge B</text><text x="836" y="173">Attention O</text></g>
-<g font-family="ui-monospace, monospace" font-size="11" fill="#91e7c9" text-anchor="middle">
+<g font-family="ui-monospace, monospace" font-size="11" fill="#087f55" text-anchor="middle">
 <text x="656" y="325">(m,l,a)</text><text x="776" y="325">(m,l,a)</text><text x="896" y="325">(m,l,a)</text><text x="1016" y="325">(m,l,a)</text></g>
 <g stroke="url(#stroke)" stroke-width="2" fill="none" marker-end="url(#arrow)">
 <path d="M656 284L724 258"/><path d="M776 284L780 258"/><path d="M896 284L900 258"/><path d="M1016 284L953 258"/>
 <path d="M752 202L805 190"/><path d="M923 202L867 190"/></g>
-<text x="836" y="375" font-family="system-ui, sans-serif" font-size="13" fill="#9cbac3" text-anchor="middle">归约值大小与上下文长度无直接线性关系</text>
-<line x1="42" y1="402" x2="1078" y2="402" stroke="#618e89" stroke-opacity=".32"/>
-<text x="42" y="428" font-family="system-ui, sans-serif" font-size="12" fill="#8eacb4">示意图仅展示核心通信方向，不表示严格的执行时序或全部同步开销</text>
-<text x="1078" y="428" text-anchor="end" font-family="ui-monospace, monospace" font-size="12" fill="#8eacb4">AI SYSTEMS &amp; BEYOND</text>
+<text x="836" y="375" font-family="system-ui, sans-serif" font-size="13" fill="#172d43" text-anchor="middle">归约值大小与上下文长度无直接线性关系</text>
+<line x1="42" y1="402" x2="1078" y2="402" stroke="#4583bd" stroke-opacity=".32"/>
+<text x="42" y="428" font-family="system-ui, sans-serif" font-size="12" fill="#476078">示意图仅展示核心通信方向，不表示严格的执行时序或全部同步开销</text>
+<text x="1078" y="428" text-anchor="end" font-family="ui-monospace, monospace" font-size="12" fill="#476078">AI SYSTEMS &amp; BEYOND</text>
 </svg>
