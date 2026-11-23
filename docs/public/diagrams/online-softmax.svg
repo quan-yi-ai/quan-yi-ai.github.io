@@ -2,54 +2,54 @@
 <title id="t">Online Softmax 跨 KV 分块合并示意</title>
 <desc id="d">三个 Key Value 分块依次贡献局部 max、指数和与加权向量，通过 running state 合并并得到最终输出。</desc>
 <defs>
-  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#0e1a23"/><stop offset="1" stop-color="#10282e"/></linearGradient>
-  <linearGradient id="tile" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#173b48"/><stop offset="1" stop-color="#163840"/></linearGradient>
-  <marker id="ar" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M1 1 L6 4 L1 7" fill="none" stroke="#73dfbb" stroke-width="1.5"/></marker>
-  <pattern id="dot" width="26" height="26" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1" fill="#9dc8c0" opacity=".07"/></pattern>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ffffff"/><stop offset="1" stop-color="#ffffff"/></linearGradient>
+  <linearGradient id="tile" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f0f7ff"/><stop offset="1" stop-color="#f0f7ff"/></linearGradient>
+  <marker id="ar" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M1 1 L6 4 L1 7" fill="none" stroke="#4583bd" stroke-width="1.5"/></marker>
+  <pattern id="dot" width="26" height="26" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1" fill="#209a74" opacity=".07"/></pattern>
 </defs>
 <rect width="1120" height="470" rx="18" fill="url(#bg)"/>
 <rect width="1120" height="470" rx="18" fill="url(#dot)"/>
 <g font-family="system-ui, PingFang SC, sans-serif">
-  <text x="42" y="39" font-size="13" fill="#73dfbb" letter-spacing="2.3">ONLINE SOFTMAX</text>
-  <text x="1076" y="39" text-anchor="end" font-size="13" fill="#8cabb6">STREAMING REDUCTION · ONE QUERY ROW</text>
-  <text x="42" y="87" font-size="25" font-weight="750" fill="#edf8f6">逐块扫描 KV，不存储完整 Attention 矩阵</text>
-  <text x="42" y="115" font-size="14" fill="#9bbbc3">每个 KV tile 更新同一行 Query 的归一化状态，最终输出与完整 Softmax 等价（忽略浮点误差）。</text>
+  <text x="42" y="39" font-size="13" fill="#087f55" letter-spacing="2.3">ONLINE SOFTMAX</text>
+  <text x="1076" y="39" text-anchor="end" font-size="13" fill="#476078">STREAMING REDUCTION · ONE QUERY ROW</text>
+  <text x="42" y="87" font-size="25" font-weight="750" fill="#172d43">逐块扫描 KV，不存储完整 Attention 矩阵</text>
+  <text x="42" y="115" font-size="14" fill="#172d43">每个 KV tile 更新同一行 Query 的归一化状态，最终输出与完整 Softmax 等价（忽略浮点误差）。</text>
 </g>
 <g font-family="system-ui, sans-serif">
-  <g fill="url(#tile)" stroke="#589b9d">
+  <g fill="url(#tile)" stroke="#4583bd">
     <rect x="50" y="170" width="184" height="136" rx="12"/>
     <rect x="266" y="170" width="184" height="136" rx="12"/>
     <rect x="482" y="170" width="184" height="136" rx="12"/>
   </g>
-  <g font-size="16" font-weight="700" fill="#effff9" text-anchor="middle">
+  <g font-size="16" font-weight="700" fill="#172d43" text-anchor="middle">
     <text x="142" y="202">KV tile 0</text><text x="358" y="202">KV tile 1</text><text x="574" y="202">KV tile 2</text>
   </g>
-  <g fill="#8ae7c7" font-size="13" text-anchor="middle">
+  <g fill="#087f55" font-size="13" text-anchor="middle">
     <text x="142" y="227">S₀ = Q K₀ᵀ</text>
     <text x="358" y="227">S₁ = Q K₁ᵀ</text>
     <text x="574" y="227">S₂ = Q K₂ᵀ</text>
   </g>
-  <g fill="#8ab6c7">
+  <g fill="#def8e9">
     <rect x="80" y="250" width="27" height="28" rx="4"/><rect x="114" y="250" width="27" height="28" rx="4"/><rect x="148" y="250" width="27" height="28" rx="4"/><rect x="182" y="250" width="27" height="28" rx="4"/>
     <rect x="296" y="250" width="27" height="28" rx="4"/><rect x="330" y="250" width="27" height="28" rx="4"/><rect x="364" y="250" width="27" height="28" rx="4"/><rect x="398" y="250" width="27" height="28" rx="4"/>
     <rect x="512" y="250" width="27" height="28" rx="4"/><rect x="546" y="250" width="27" height="28" rx="4"/><rect x="580" y="250" width="27" height="28" rx="4"/><rect x="614" y="250" width="27" height="28" rx="4"/>
   </g>
-  <g fill="none" stroke="#72dab9" stroke-width="2.3" marker-end="url(#ar)">
+  <g fill="none" stroke="#4583bd" stroke-width="2.3" marker-end="url(#ar)">
     <path d="M236 238 H259"/>
     <path d="M452 238 H475"/>
     <path d="M673 238 H722"/>
   </g>
-  <rect x="738" y="170" width="326" height="136" rx="12" fill="#174038" stroke="#56bb9c" stroke-width="1.7"/>
-  <text x="762" y="203" fill="#b5ffdf" font-size="16" font-weight="750">Running state</text>
-  <text x="762" y="236" fill="#e6fbf2" font-size="17" font-family="ui-monospace, monospace">(m, ℓ, a)</text>
-  <text x="762" y="267" fill="#9fdbca" font-size="13">max / exp sum / weighted value</text>
-  <g stroke="#86cbb8" stroke-width="1.8" fill="none"><path d="M903 171 V148 H863 V164" marker-end="url(#ar)"/></g>
-  <text x="1003" y="148" fill="#a7d8ca" font-size="12" text-anchor="end">renormalize</text>
-  <path d="M900 309 V357" stroke="#76d9bc" stroke-width="2.2" marker-end="url(#ar)" fill="none"/>
-  <rect x="738" y="366" width="326" height="51" rx="11" fill="#12372e" stroke="#6ee3b7"/>
-  <text x="900" y="397" text-anchor="middle" font-family="ui-monospace, monospace" font-size="19" font-weight="700" fill="#c3ffe8">Output = a / ℓ</text>
+  <rect x="738" y="170" width="326" height="136" rx="12" fill="#dfedff" stroke="#4583bd" stroke-width="1.7"/>
+  <text x="762" y="203" fill="#087f55" font-size="16" font-weight="750">Running state</text>
+  <text x="762" y="236" fill="#172d43" font-size="17" font-family="ui-monospace, monospace">(m, ℓ, a)</text>
+  <text x="762" y="267" fill="#087f55" font-size="13">max / exp sum / weighted value</text>
+  <g stroke="#4583bd" stroke-width="1.8" fill="none"><path d="M903 171 V148 H863 V164" marker-end="url(#ar)"/></g>
+  <text x="1003" y="148" fill="#172d43" font-size="12" text-anchor="end">renormalize</text>
+  <path d="M900 309 V357" stroke="#4583bd" stroke-width="2.2" marker-end="url(#ar)" fill="none"/>
+  <rect x="738" y="366" width="326" height="51" rx="11" fill="#fff0d9" stroke="#4583bd"/>
+  <text x="900" y="397" text-anchor="middle" font-family="ui-monospace, monospace" font-size="19" font-weight="700" fill="#087f55">Output = a / ℓ</text>
 </g>
-<line x1="42" y1="438" x2="1077" y2="438" stroke="#75aaab" opacity=".3"/>
-<text x="42" y="457" font-size="12" fill="#86a8b0" font-family="system-ui, sans-serif">示意图：tile 可在片上重用，统计量对每个 Query 行独立维护。</text>
-<text x="1076" y="457" font-size="12" fill="#86a8b0" text-anchor="end" font-family="ui-monospace, monospace">AI SYSTEMS &amp; BEYOND</text>
+<line x1="42" y1="438" x2="1077" y2="438" stroke="#4583bd" opacity=".3"/>
+<text x="42" y="457" font-size="12" fill="#476078" font-family="system-ui, sans-serif">示意图：tile 可在片上重用，统计量对每个 Query 行独立维护。</text>
+<text x="1076" y="457" font-size="12" fill="#476078" text-anchor="end" font-family="ui-monospace, monospace">AI SYSTEMS &amp; BEYOND</text>
 </svg>
