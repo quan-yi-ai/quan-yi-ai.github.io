@@ -38,10 +38,68 @@
         "old_editorial_heading_absent": true,
         "figure_count": 8
       }
-    }
+    },
+    "migrated_articles": {
+      "python-concurrency-runtime": {
+        "status": 200,
+        "article_header": true,
+        "figures": 4
+      },
+      "python-functions-context": {
+        "status": 200,
+        "article_header": true,
+        "figures": 1
+      },
+      "rlinf-architecture": {
+        "status": 200,
+        "article_header": true,
+        "figures": 2
+      },
+      "minicpmo-45-omni-inference": {
+        "status": 200,
+        "article_header": true,
+        "figures": 2
+      },
+      "rl-posttraining-frameworks": {
+        "status": 200,
+        "article_header": true,
+        "figures": 1
+      },
+      "agentic-rl-infrastructure": {
+        "status": 200,
+        "article_header": true,
+        "figures": 1
+      },
+      "gpu-memory-vmm-tms-offload": {
+        "status": 200,
+        "article_header": true,
+        "figures": 3
+      },
+      "pytorch-compiler-illustrated": {
+        "status": 200,
+        "article_header": true,
+        "figures": 2
+      },
+      "speculative-decoding-guide": {
+        "status": 200,
+        "article_header": true,
+        "figures": 2
+      },
+      "rlkernel-moe-router-consistency": {
+        "status": 200,
+        "article_header": true,
+        "figures": 1
+      },
+      "multimodal-generation-benchmark": {
+        "status": 200,
+        "article_header": true,
+        "figures": 1
+      }
+    },
+    "migrated_articles_all_ok": true
   },
-  "run_id": "45152273660",
-  "source_sha": "5a36948a728a1c7d5c65d2c706170213f0d43d11",
+  "run_id": "45152425129",
+  "source_sha": "5d8342a93c25eb85c88a93a5dfdb11312a0dee0b",
   "build": "success",
   "deploy": "success",
   "result": "success"
