@@ -59,7 +59,7 @@ TransferQueue 将**控制面**与**数据面**分离。控制面由 Controller �
 
 <figure class="asb-figure asb-figure--cover">
   <button class="asb-zoom-trigger" type="button" aria-label="放大图片：四个样本的字段就绪和消费状态矩阵"><img src="/diagrams/tq-sample-lifecycle.svg" alt="四个样本的字段就绪和消费状态矩阵" loading="lazy" /></button>
-  <figcaption>同一时刻不同样本可能具有不同的字段就绪状态；图中数据是教学示例</figcaption>
+  <figcaption>按样本和字段组织的就绪状态示例（非运行时截图）</figcaption>
 </figure>
 
 例如，某 Trainer 要求字段 `response`、`reward` 和 `logprobs`，那么仅有 Prompt 或 Response 的样本都不能直接满足该请求。**Ready 不是一个笼统的“样本完成”布尔值，而要结合请求字段和消费任务判断。** 消费状态也需要区分 Task，不能把一个任务消费过直接理解成所有下游任务都不可再读。
@@ -68,7 +68,7 @@ TransferQueue 将**控制面**与**数据面**分离。控制面由 Controller �
 
 这是理解 TransferQueue 最重要的一节。下面基于项目现有的 [TransferQueueClient](https://github.com/Ascend/TransferQueue/blob/main/transfer_queue/client.py)、[Python Controller](https://github.com/Ascend/TransferQueue/blob/main/transfer_queue/controller.py) 和 [AsyncSimpleStorageManager](https://github.com/Ascend/TransferQueue/blob/main/transfer_queue/storage/managers/simple_storage_manager.py) 路径，展示基本的调用关系；省略异常恢复、字段链接、定制解析器和不同后端的分支。
 
-### 写入：分配索引、存储字段、通知状态
+### PUT：索引分配、字段存储与状态更新
 
 1. **生产者发起写入**。调用客户端的 `async_put(data, metadata=...)`；当没有 Metadata 时，客户端可以借助 Controller 的 `GET_META(mode="insert")` 获取或分配 Global Index。
 2. **数据面选择 StorageUnit**。SimpleStorageManager 根据全局索引路由，把字段值发送给对应的 StorageUnit。
@@ -76,7 +76,7 @@ TransferQueue 将**控制面**与**数据面**分离。控制面由 Controller �
 
 这里的 `BatchMeta` 不是样本内容本身。它记录索引、字段 Schema 等信息，为后续读写提供依据。
 
-### 读取：先获取 Metadata，再获取真实数据
+### GET：元数据选择与字段读取
 
 读取操作首先向 Controller 请求满足条件的 Batch Metadata：
 
@@ -171,7 +171,7 @@ SimpleStorage 是 TransferQueue 常用的基础存储后端，经典路径以 CP
 - 限制：经典内存路径主要使用 CPU DRAM；跨节点传输、序列化和 Host↔GPU 拷贝可能成为吞吐瓶颈，启用可选 SSD 路径时还需分析磁盘 I/O。
 - **分布式能力**：SimpleStorage 可通过多个 StorageUnit 分担存储与请求，并不局限于单机字典。
 
-### MooncakeStore：分层与远程传输
+### MooncakeStore 的分层存储与远程传输
 
 MooncakeStore 是 TransferQueue 的高性能 KV 型存储 Backend，支持层次化存储及可配置的 TCP/RDMA 数据传输。它通常需要额外的 Mooncake 软件组件、元数据协调服务、内存段配置以及网络能力。文档将其标为 beta，具体接口和配置应以所用版本为准。
 
@@ -271,9 +271,9 @@ TransferQueue 的核心价值可以归结为三件事：用全局样本索引和
 
 性能诊断需要区分 Trainer 等待 Controller 选择样本与等待 Storage Backend 搬运 Tensor 两种情况。是由于字段就绪不齐导致 Batch 被阻塞，还是网络与拷贝真的达到了瓶颈？这些问题对应不同的优化方向。
 
-### 延伸：Controller 与传输层重构
+### Controller 与传输层的后续演进
 
-若要进一步研究 Python Controller 在高并发 Metadata 请求中的瓶颈、Rust/PyO3 重构以及可插拔传输层，可继续阅读 [《从TransferQueue重构理解python、cpp、Rust》](/posts/transferqueue-python-cpp-rust)。本文讨论的是数据系统的核心机制，下一篇讨论的是它在更高并发与不同传输后端下的工程扩展。
+Python Controller 的高并发 Metadata 处理、Rust/PyO3 重构和可插拔传输层的实现分析，参见 [《从TransferQueue重构理解python、cpp、Rust》](/posts/transferqueue-python-cpp-rust)。
 
 ## 参考资料
 
