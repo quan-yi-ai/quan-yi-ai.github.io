@@ -106,13 +106,34 @@ jobs:
               page = response.read(500000).decode("utf-8", errors="replace")
               live["transferqueue_http_status"] = response.status
               live["transferqueue_article_present"] = "TransferQueue" in page and "asb-story-header" in page
-              live["transferqueue_figure_count"] = page.count("tq-figure-")
+              live["transferqueue_figure_count"] = page.count('class="asb-zoom-trigger"')
             diagram_url = "https://quan-yi-ai.github.io/diagrams/tq-figure-1.svg"
             with urllib.request.urlopen(diagram_url, timeout=15) as response:
               svg = response.read(100000).decode("utf-8", errors="replace")
               live["transferqueue_svg_vector"] = response.status == 200 and "<svg" in svg and "<image" not in svg and "base64," not in svg
           except Exception as exc:
             live["transferqueue_check_error"] = type(exc).__name__
+          # Verify editorial revisions are visible on all four published articles.
+          article_checks = {
+            "ray": ("ray-distributed-framework", "Ray Dashboard 与分布式故障排查"),
+            "transferqueue": ("transferqueue", "PUT / GET 请求的完整执行路径"),
+            "rust": ("transferqueue-python-cpp-rust", "Controller 性能测试与结果分析"),
+            "parallel": ("transformer-parallel-attention", "多维并行进程组与通信成本"),
+          }
+          live["editorial_pages"] = {}
+          for key, (slug, heading) in article_checks.items():
+            try:
+              url = "https://quan-yi-ai.github.io/posts/" + slug + "?editorial=" + os.environ["RUN_ID"]
+              with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent":"ASB-Deployment-Check"}), timeout=15) as response:
+                page = response.read(600000).decode("utf-8", errors="replace")
+                live["editorial_pages"][key] = {
+                  "http_status": response.status,
+                  "updated_heading": heading in page,
+                  "old_editorial_heading_absent": "不要背菜单，而要学会定位故障" not in page,
+                  "figure_count": page.count('class="asb-zoom-trigger"'),
+                }
+            except Exception as exc:
+              live["editorial_pages"][key] = {"error": type(exc).__name__}
           result = {
             "live_site": live,
             "run_id": os.environ["RUN_ID"],
