@@ -83,6 +83,22 @@ jobs:
             except Exception as exc:
               live = {"checked": False, "page_kind": "unreachable", "error_type": type(exc).__name__}
             time.sleep(5)
+          # Validate that the migrated article and its genuine SVG asset are
+          # published as well; never confuse a successful homepage with all pages.
+          try:
+            article_url = "https://quan-yi-ai.github.io/posts/transformer-parallel-attention?check=" + os.environ["RUN_ID"]
+            with urllib.request.urlopen(urllib.request.Request(article_url, headers={"User-Agent": "ASB-Deployment-Check"}), timeout=15) as response:
+              article_html = response.read(400000).decode("utf-8", errors="replace")
+              live["article_http_status"] = response.status
+              live["article_original_title"] = "并行方式" in article_html
+              live["article_reading_layout"] = "asb-story-header" in article_html
+            diagram_url = "https://quan-yi-ai.github.io/diagrams/parallel-overview.svg"
+            with urllib.request.urlopen(diagram_url, timeout=15) as response:
+              diagram = response.read(100000).decode("utf-8", errors="replace")
+              live["svg_http_status"] = response.status
+              live["svg_is_vector"] = "<svg" in diagram and "<image" not in diagram and "data:image" not in diagram
+          except Exception as exc:
+            live["article_check_error"] = type(exc).__name__
           result = {
             "live_site": live,
             "run_id": os.environ["RUN_ID"],
