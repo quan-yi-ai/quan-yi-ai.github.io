@@ -25,7 +25,9 @@ lastUpdated: false
   <figcaption><span>FIG. 01</span> 从单卡计算到分布式并行的六种切分方式 <a href="/diagrams/parallel-overview.svg" target="_blank" rel="noopener noreferrer" aria-label="放大查看原图">查看 SVG ↗</a></figcaption>
 </figure>
 
-从单卡的 Attention 和 FFN 公式出发，沿层、样本、token、head、特征和专家几个轴推导多卡形状，再看 FlashAttention、PagedAttention 和 Ring Attention 各自改变了哪一步。
+本文先建立单卡 Transformer 的计算基准，再介绍切分轴及其通信代价，之后依次讨论 Attention 的片上 IO 优化、跨 GPU Attention 和 KV Cache 管理，最后回到多维并行与 NCCL 通信。
+
+**阅读路线**：`单卡公式 → 张量切分 → 分布式 Attention → KV Cache → 多维并行与通信`。其中，**并行策略**回答“计算与参数如何分配”，**Attention 实现**回答“注意力算子如何高效执行”，**缓存管理**回答“历史 K/V 如何存放与复用”。同一个系统可以同时使用这些不同层面的优化。
 
 ## 一　单卡上的 Transformer block
 
@@ -72,11 +74,13 @@ T、P、D、C、G 分别表示 TP、PP、DP、CP、EP 的并行度。b 是 micro
 
 SP（按 Megatron 的用法）通常复用 TP 组，把部分激活按 token 切分，在需要完整输入的线性层前收齐。CP 把上下文 token 分给各 rank。Attention 可以保留本地 Q、交换 K、V，也可以通过 All-to-All 在 token 分片和 head 分片之间重排。
 
-同一个 GEMM 有两种常见 TP 切法。 设 X 的形状为 [M, K]，权重 W 为 [K, N]，TP 组大小为 T。
+### 从切分轴到通信：Column / Row Parallel GEMM
 
-按输出特征 N 切。 各 rank 做 [M, K] × [K, N / T] → [M, N / T]，得到不同的输出列。下游可直接消费分片时就保持原布局。只有下游需要完整输出时，才沿输出特征做 AllGather。若上游用了 SP，还可能需要在 GEMM 前沿 token 做 AllGather。这两次 AllGather 的对象和切分轴不同。
+同一个 GEMM 有两种常见 TP 切法。设 X 的形状为 [M, K]，权重 W 为 [K, N]，TP 组大小为 T。
 
-按输入特征 K 切。 各 rank 做 [M, K / T] × [K / T, N] → [M, N]，得到同一组输出位置的部分和。完整结果需要跨 rank 相加。若每个 rank 都要完整结果，用 AllReduce。若下游只保留本 rank 的 token 段，用 ReduceScatter，输出 [M / T, N]。
+**按输出特征 N 切（Column Parallel）。** 各 rank 做 [M, K] × [K, N / T] → [M, N / T]，得到不同的输出列。下游可直接消费分片时就保持原布局。只有下游需要完整输出时，才沿输出特征做 AllGather。若上游用了 SP，还可能需要在 GEMM 前沿 token 做 AllGather。这两次 AllGather 的对象和切分轴不同。
+
+**按输入特征 K 切（Row Parallel）。** 各 rank 做 [M, K / T] × [K / T, N] → [M, N]，得到同一组输出位置的部分和。完整结果需要跨 rank 相加。若每个 rank 都要完整结果，用 AllReduce。若下游只保留本 rank 的 token 段，用 ReduceScatter，输出 [M / T, N]。
 
 Dense FFN 通常把这两种切法连用。第一层按输出特征切，本地激活后直接交给第二层，第二层按输入特征切。Attention 的常规 MHA 投影沿用相同思路，Q、K、V 投影按整颗 head 分配输出特征，输出投影再归约各 rank 的部分和。
 
@@ -100,13 +104,13 @@ CP 中每卡只负责 S / C 个 query token，head 数不因 CP 自身减少。F
 
 EP 中 E 代表专家总数，Tₑ 代表路由到专家 e 的 token 数。若专家权重完整放在一张卡上，本地专家做 [Tₑ, H] → [Tₑ, Fₑ] → [Tₑ, H]。流程是 Dispatch → 专家 GEMM → Combine。如果同一个专家还做专家 TP，Megatron 的 All-to-All dispatcher 可以在这两次 EP 通信之间，插入专家 GEMM 前的 AllGather 和 GEMM 后的 ReduceScatter。
 
-## 三　MHA GQA MLA 与 KV 缓存结构
+## 三　MHA、GQA、MLA：模型结构决定 K/V 规模
 
 这些名称描述模型结构。用 n、k 表示 query 和 KV head 数。在均匀分组下，每组 n / k 个 query head 共享一个 KV head。MHA 有 k = n，GQA 有 1 < k < n，MQA 有 k = 1。等宽 K、V、每元素 w 字节时，普通 KV payload 为 2 · k · Dₕ · w 字节每 token 每层，忽略框架副本和分配开销。
 
 MLA（Multi-head Latent Attention）使用低秩潜变量压缩 KV。以 DeepSeek-V2 为例，缓存可保留宽度 Lᵥ 的 KV latent 和宽度 R 的独立 RoPE key 分量。两者精度相同时，对应的 payload 是 (Lᵥ + R) · w。实现可以吸收部分上投影，避免每步都显式展开全部历史 K、V。
 
-## 四　Online Softmax 与 FlashAttention
+## 四　单卡 Attention 的 IO 优化：Online Softmax 与 FlashAttention
 
 ### Online Softmax 怎样跨块合并
 
@@ -169,13 +173,9 @@ Q、K、V 按 tile 搬到片上，分数和概率就地消费，避免把完整 
 
 **v4 · 面向 Blackwell 的流水与归约。** 使用更大的 tile 和异步 MMA，减少指数计算与重缩放开销，并用 Tensor Memory 和双 CTA MMA 降低反向共享内存流量和原子累加开销。
 
-## 五　PagedAttention 和 Ring Attention
+## 五　跨 GPU 的 Attention：Ring、Tree 与 Ulysses
 
-### PagedAttention 管理推理 KV Cache
-
-<figure class="asb-figure asb-figure--source"><a href="/images/parallel/figure-4.svg" target="_blank" rel="noopener noreferrer" title="放大查看原文图 4"><img src="/images/parallel/figure-4.svg" alt="飞书原文技术示意图 4" loading="lazy" /></a><figcaption><span>SOURCE FIG. 04</span> 飞书原文技术图 · 点击可查看大图</figcaption></figure>
-
-将你提到的“配置的 Attention”按 PagedAttention 理解。若每个 KV block 容纳 J 个 token，逻辑位置 t 的块号是 floor(t/J)，块内偏移是 t mod J。块表把逻辑块号映射到物理块，物理块可不连续。请求增长时按需申请，支持前缀共享，减少碎片和预留浪费。每个有效 token 的 KV payload 由模型结构和精度决定。
+当上下文被拆到多个 GPU 上时，每张卡只能直接访问本地的 K/V，Attention 却需要汇聚所有可见 Key 的贡献。这里先讨论**如何完成跨卡 Attention**，再到第六节单独说明推理时的 KV Cache 存储和复用。
 
 ### Ring Attention 是 CP 的一种实现
 
@@ -183,11 +183,83 @@ Q、K、V 按 tile 搬到片上，分数和概率就地消费，避免把完整 
 
 设 CP 组有 C 个 rank。rank r 保留本地 Qᵣ，大小是 [B, S / C, Nₕ, Dₕ]，并持有自己的 Kᵣ、Vᵣ。每轮用当前 K、V 块计算局部 Attention，同时把 K、V 转给环上的邻居并接收下一块。mask 决定哪些 query-key 对有效。各 rank 用前面的 Online Softmax 合并各块的贡献，计算结束时只产生自己 query 分片的输出。
 
-举例对照两种通信依赖：Ring Attention 沿环传 K、V 块，服务于 Attention 的跨 token 依赖。TP/SP 的 Ring AllGather 若选用 ring 算法，传的是线性层输入的激活分片。另一种长上下文实现 Ulysses 用 All-to-All 把序列分片重排成 head 分片，完成 Attention 后再换回去。
+**这里的 Ring 不是 Ring AllGather。** Ring Attention 沿设备环传递 K/V 分片，让每个 Query 分片依次访问全局上下文；Ring AllGather 则是集合通信的一种实现算法，传输的可能是线性层输入激活。两者可以使用相似的网络拓扑，但通信对象、计算依赖和最终目的并不一样。
 
-## 六　3D 4D 5D 并行与通算融合
+### Tree Attention：跨 GPU 归约 Attention 统计量
 
-常见 3D 组合是 DP×TP×PP。加入 CP 的独立轴配置，world size 可以写成 D·T·P·C。固定其他坐标，只沿 tp 坐标变化得到 TP 组，只沿 cp 坐标变化得到 CP 组。MoE 项目可能把 EP 也计入“几 D”，具体以该框架的进程组为准。SP 通常复用 TP 组，EP 与普通 DP、专家 DP 和专家 TP 的排组需要单独核对。
+Ring Attention 的思路是把 K/V 分片沿环传到需要计算的位置；另一条路线是不搬运整段 K/V，而是让设备分别计算当前 Query 对本地 K/V 分片的贡献，再对结果进行归约。**Tree Attention**（这里指 *Topology-aware Decoding for Long-Context Attention on GPU Clusters*）主要面向分布式长上下文 **decode**，利用树形归约以及分层互连来降低跨设备传输与同步开销。
+
+假设各 GPU 持有不同的 K/V 分片，而本次解码的 Query 可以在参与计算的设备上获得。GPU `r` 对其本地可见的 Key 计算三个统计量：局部最大值 `m_r`、以该最大值为基准的指数和 `l_r`，以及尚未归一化的加权向量 `a_r`。这是前文 Online Softmax 的同一套数学量。两组统计量 `A`、`B` 可以按以下公式合并：
+
+$$
+\begin{aligned}
+m &= \max(m_A,m_B) \\
+\ell &= e^{m_A-m}\ell_A + e^{m_B-m}\ell_B \\
+a &= e^{m_A-m}a_A + e^{m_B-m}a_B \\
+O &= a/\ell
+\end{aligned}
+$$
+
+这使得 Attention 结果能够按树形结构逐层归约：设备不必传输完整的历史 K/V，只需交换与当前 Query 对应的归约统计量（具体实现还需计入 Query 的分发等开销）。归约时仍需处理因果掩码、数值稳定性和全掩码行等情况。
+
+<figure class="asb-figure asb-figure--cover">
+<a href="/diagrams/ring-vs-tree-attention.svg" target="_blank" rel="noopener noreferrer" title="在新标签中查看 SVG 原图"><img src="/diagrams/ring-vs-tree-attention.svg" alt="Ring Attention 通过环形传递 KV 分片；Tree Attention 计算局部统计量后执行树形归约的原创矢量对比图" loading="lazy" /></a>
+<figcaption><span>FIG. 07</span> Ring 与 Tree Attention 的通信思路对比 <a href="/diagrams/ring-vs-tree-attention.svg" target="_blank" rel="noopener noreferrer">查看 SVG ↗</a></figcaption>
+</figure>
+
+两者不能简单判断“哪个总是更快”：Ring Attention 的长序列训练 / prefill 路径与 Tree Attention 重点优化的长上下文 decode 路径并不完全相同，性能也受互连拓扑、序列长度、批大小和实现细节影响。
+
+参考：[Tree Attention 原论文](https://arxiv.org/abs/2408.04093) · [代码实现](https://github.com/Zyphra/tree_attention)
+
+### Ulysses：通过 All-to-All 重排序列与 Head
+
+还有一种不同的分布式 Attention 思路：**DeepSpeed Ulysses** 在设备间进行 All-to-All，使数据由序列维切分转换为 Head 维切分；每张卡随后对自己的 Head 计算 Attention，再进行反向的 All-to-All 还原布局。
+
+可以这样归纳：**Ring 交换 K/V 块，Tree 归约 Attention 统计量，Ulysses 重排切分布局。** 它们解决的是跨设备获取全局上下文的问题，但具体通信方式不同。实际系统还可以组合多种方法。
+
+参考：[DeepSpeed Ulysses](https://arxiv.org/abs/2309.14509)
+
+::: tip 同名概念：Tree-structured Attention
+上面的 Tree Attention 是一种**跨设备的精确 Attention 归约算法**。在推测解码、多分支推理或 Agent RL 中，“Tree Attention”还可能指根据**共享前缀 / 树状生成路径**复用计算的技术，例如 [DeFT](https://arxiv.org/abs/2404.00242) 和 [AREAL-DTA](https://arxiv.org/abs/2602.00482)。后者的“Tree”来自输入序列的分叉关系，而不是 GPU 归约拓扑。两类算法不能混为一谈。
+:::
+
+## 六　推理 KV Cache 的组织与分层管理
+
+前面的 Ring、Tree 和 Ulysses 讨论**跨设备怎样完成 Attention 计算**。推理服务还会遇到另一个独立问题：长时间运行的请求怎样存放、查找、复用并迁移历史 K/V。这里转到 KV Cache 的存储布局和缓存层级。
+
+### PagedAttention 管理推理 KV Cache
+
+<figure class="asb-figure asb-figure--source"><a href="/images/parallel/figure-4.svg" target="_blank" rel="noopener noreferrer" title="放大查看原文图 4"><img src="/images/parallel/figure-4.svg" alt="飞书原文技术示意图 4" loading="lazy" /></a><figcaption><span>SOURCE FIG. 04</span> 飞书原文技术图 · 点击可查看大图</figcaption></figure>
+
+将你提到的“配置的 Attention”按 PagedAttention 理解。若每个 KV block 容纳 J 个 token，逻辑位置 t 的块号是 floor(t/J)，块内偏移是 t mod J。块表把逻辑块号映射到物理块，物理块可不连续。请求增长时按需申请，支持前缀共享，减少碎片和预留浪费。每个有效 token 的 KV payload 由模型结构和精度决定。
+
+### LMCache、Mooncake 与 HiCache：缓存管理的不同层次
+
+<div class="asb-table-kicker">三种 KV Cache 相关方案 · 原文表格</div>
+
+| 项目 | 是什么 | 层级 |
+| --- | --- | --- |
+| LMCache | 独立的 KV Cache 管理层，挂在 vLLM/SGLang 外面 | 引擎外置的"存储中间件" |
+| Mooncake | 以 KVCache 为中心的分离式推理架构（PD 分离 + 分布式缓存池） | 集群级架构 |
+| HiCache | SGLang 内置的三级缓存模块 | 引擎内部机制 |
+
+**LMCache：引擎外置的 KV Cache 管理层。** 它关注 KV Cache 跨请求的复用、卸载和跨存储层迁移。常见层级包括 GPU HBM（活跃工作集）、CPU DRAM（热缓存）、本地 SSD / NVMe，以及远端存储。前缀复用、缓存卸载和 Prefill/Decode 间的传输是相关但不同的使用方式。
+
+**Mooncake：面向 Prefill/Decode 分离的分布式 KV Cache 架构。** 它利用集群的 CPU 内存、存储设备与网络资源，跨 Prefill 和 Decode 阶段传输、管理 KV Cache，从系统级减少重复计算和资源闲置。
+
+**HiCache：推理引擎内的分层缓存机制。** 可以按 GPU HBM、CPU 主机内存和外部 / 分布式存储的层级理解。它与 PagedAttention 不是互斥方案：前者关注缓存层次与迁移，后者关注 KV 的逻辑块和物理块映射。
+
+参考资料
+
+[Megatron Core 并行指南](https://docs.nvidia.com/megatron-core/developer-guide/latest/user-guide/parallelism-guide.html) · [Megatron Core 上下文并行](https://docs.nvidia.com/megatron-core/developer-guide/latest/user-guide/features/context_parallel.html) · [Megatron Core MoE Dispatcher](https://docs.nvidia.com/megatron-core/developer-guide/latest/apidocs/core/core.transformer.moe.token_dispatcher.html)
+
+[GQA](https://arxiv.org/abs/2305.13245) · [DeepSeek-V2 与 MLA](https://arxiv.org/abs/2405.04434) · [FlashAttention](https://arxiv.org/abs/2205.14135) · [FA2](https://arxiv.org/abs/2307.08691) · [FA3](https://arxiv.org/abs/2407.08608) · [FA4](https://arxiv.org/abs/2603.05451)
+
+[PagedAttention](https://arxiv.org/abs/2309.06180) · [Ring Attention](https://arxiv.org/abs/2310.01889) · [DeepSpeed Ulysses](https://arxiv.org/abs/2309.14509)
+
+## 七　多维并行组合与计算通信重叠
+
+单个并行轴及其通信方式弄清楚之后，才能理解多个轴的组合。常见 3D 组合是 DP×TP×PP。加入 CP 的独立轴配置，world size 可以写成 D·T·P·C。固定其他坐标，只沿 tp 坐标变化得到 TP 组，只沿 cp 坐标变化得到 CP 组。MoE 项目可能把 EP 也计入“几 D”，具体以该框架的进程组为准。SP 通常复用 TP 组，EP 与普通 DP、专家 DP 和专家 TP 的排组需要单独核对。
 
 回到通算融合，入口是 **AllGather → GEMM**，通信先产出可读的输入块。出口是 **GEMM → ReduceScatter 或 AllReduce**，计算先产出部分和。数据布局决定箭头方向，块级实现决定通信和另一块的计算能否同时进行。MoE 可以重叠 Dispatch/Combine 与专家 GEMM，Ring Attention 可以重叠 K、V 传输与 Attention tile 计算。
 
@@ -203,54 +275,19 @@ Q、K、V 按 tile 搬到片上，分数和概率就地消费，避免把完整 
 
 对应 TP+SP 的 AllGather，U 是收齐后的输入激活大小。对于 GEMM 后的 ReduceScatter 或 AllReduce，U 是每 rank 的完整部分和张量大小。这两处的 U 要分别按张量形状计算。
 
-## NCCL中执行一次All Reduce内部进行的7个阶段
 
-**NCCL AllReduce：从初始化到数据传输的关键环节**
+## 八　NCCL 集合通信：从拓扑到数据传输
+
+以下保留原文整理的关键环节，帮助把前面 AllGather、ReduceScatter、AllReduce 的逻辑通信映射到实际执行。**注意：这不是一次 AllReduce 必定按顺序执行的七个固定阶段**。初始化、拓扑发现、协议选择、通道组织、GPU Kernel 与网络传输在不同硬件和协议下的执行路径可能不同。
+
+**原文整理的 NCCL 环节（含待核对项）**
 
 | 阶段 | 核心操作 | 备注 |
 | --- | --- | --- |
-| 初始化（建链） | 建立通信域，所有GPU互相知道彼此的存在 | TCP 单节点？ |
-| 拓扑发现 | 探测连接方式 NVLink？PCIe？IB？ |  |
-| ring/tree构建 | 排通信顺序 谁连谁 |  |
+| 初始化（建链） | 初始化通信域及连接资源 | 原文“TCP 单节点？”有待进一步核对 |
+| 拓扑发现 | 发现 GPU 和网络互连拓扑 | NVLink、PCIe、InfiniBand 等 |
+| Ring/Tree 等通信组织 | 根据算法和拓扑组织通信关系 | 具体选择因规模与硬件而异 |
 | channel分配 | 数据切chunk，多路并行传 | 每个chunk走一个channel |
-| proxy线程 | 每个channel启动一个收发线程 |  |
-| QP建立 | 建RDMA连接，端点就绪 | TCP |
-| RDMA传输 | 数据收发，kernel bypass |  |
-
-<div class="asb-table-kicker">原文嵌入表格 3 · 已恢复单元格数据</div>
-
-| 项目 | 是什么 | 层级 |
-| --- | --- | --- |
-| LMCache | 独立的 KV Cache 管理层，挂在 vLLM/SGLang 外面 | 引擎外置的"存储中间件" |
-| Mooncake | 以 KVCache 为中心的分离式推理架构（PD 分离 + 分布式缓存池） | 集群级架构 |
-| HiCache | SGLang 内置的三级缓存模块 | 引擎内部机制 |
-
-- LMcache
-官方定位是面向LLM推理的KV cache的管理层，把KV cache从临时状态变成可复用、可持久存储、可跨引擎共享的东西。里面也是会做分层
-
-GPU显存：活跃工作集
-
-CPU DRAM：用pin memory做热缓存
-
-本地存储：磁盘、NVMe、GDS
-
-远程存储：Redis、MoonCake、infinistore
-
-支持两种模式：cache offloading（跨请求前缀复用）、PD分离（跨引擎、GPU的缓存传输）
-
-- MoonCake
-把 Prefill 和 Decode 拆成两个集群，中间用分布式 KVCache 池连接，池子靠集群里闲置的 CPU、DRAM、SSD、NIC 拼出来——这叫"以存换算"。
-
-- HiCache
-SGLang的三级缓存
-
-仿CPU的三级缓存，L1 GPU HBM L2 CPU host RAM  L3分布式存储
-
-参考资料
-
-[Megatron Core 并行指南](https://docs.nvidia.com/megatron-core/developer-guide/latest/user-guide/parallelism-guide.html) · [Megatron Core 上下文并行](https://docs.nvidia.com/megatron-core/developer-guide/latest/user-guide/features/context_parallel.html) · [Megatron Core MoE Dispatcher](https://docs.nvidia.com/megatron-core/developer-guide/latest/apidocs/core/core.transformer.moe.token_dispatcher.html)
-
-[GQA](https://arxiv.org/abs/2305.13245) · [DeepSeek-V2 与 MLA](https://arxiv.org/abs/2405.04434) · [FlashAttention](https://arxiv.org/abs/2205.14135) · [FA2](https://arxiv.org/abs/2307.08691) · [FA3](https://arxiv.org/abs/2407.08608) · [FA4](https://arxiv.org/abs/2603.05451)
-
-[PagedAttention](https://arxiv.org/abs/2309.06180) · [Ring Attention](https://arxiv.org/abs/2310.01889) · [DeepSpeed Ulysses](https://arxiv.org/abs/2309.14509)
-
+| Proxy 线程 | 某些通信协议或网络路径需要 CPU 端 Proxy 协作 | 并非每个 Channel 都必然有独立线程 |
+| QP 建立 | RDMA 网络路径可能需要建立 Queue Pair | 单机 NVLink/PCIe 路径不一定涉及 QP |
+| 数据传输 | 通过选定协议与互连传输数据 | RDMA 只是可能的传输方式之一 |
