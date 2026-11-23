@@ -165,7 +165,7 @@ SimpleStorage 是 TransferQueue 常用的基础存储后端，经典路径以 CP
 在基础实现里，`StorageUnitData.put_data` 以 Global Index 为 Key 写入每个字段，`get_data` 根据字段名与索引读回结果。多个 StorageUnit 分担存储与网络请求，并不等于每个 Unit 都保存一份完整的 Global Batch。
 
 
-##### 适用场景与瓶颈
+#### 适用场景与瓶颈
 
 - 优点：依赖相对少、部署与调试成本低；很适合本地调试、功能验证和初期分布式训练。
 - 限制：经典内存路径主要使用 CPU DRAM；跨节点传输、序列化和 Host↔GPU 拷贝可能成为吞吐瓶颈，启用可选 SSD 路径时还需分析磁盘 I/O。
