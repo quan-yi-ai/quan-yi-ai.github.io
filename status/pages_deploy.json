@@ -94,13 +94,18 @@
         "status": 200,
         "article_header": true,
         "figures": 1
+      },
+      "sglang-startup-log-analysis": {
+        "status": 200,
+        "article_header": true,
+        "figures": 2
       }
     },
     "migrated_articles_all_ok": true
   },
-  "run_id": "45152970844",
-  "source_sha": "d214c59925cd97d9e014e3cb8aa2eb68f1c4b87b",
-  "build": "cancelled",
-  "deploy": "cancelled",
-  "result": "failure"
+  "run_id": "45153009121",
+  "source_sha": "5b208d9ed4b794c5b4405e84dc2d3ad6dcc59afa",
+  "build": "success",
+  "deploy": "success",
+  "result": "success"
 }
