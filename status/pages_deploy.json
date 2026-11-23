@@ -3,10 +3,15 @@
     "checked": true,
     "http_status": 200,
     "page_kind": "vitepress",
-    "has_home_hero": true
+    "has_home_hero": true,
+    "article_http_status": 200,
+    "article_original_title": true,
+    "article_reading_layout": true,
+    "svg_http_status": 200,
+    "svg_is_vector": true
   },
-  "run_id": "45130315966",
-  "source_sha": "29c9c6381d7fee5f7f183b3c3abc2f24ab6ceb54",
+  "run_id": "45130487269",
+  "source_sha": "8d6a493d74a05f63310838dc64e1be7af0c73753",
   "build": "success",
   "deploy": "success",
   "result": "success"
