@@ -16,7 +16,7 @@ lastUpdated: false
   <p class="asb-story-deck">在 Eager Mode 下，模型里的逐元素操作往往变成很多独立 Kernel。torch.compile 尝试捕获可编译区域，把算子关系转成图，再针对具体 Shape 与硬件生成代码。它既可能减少内存访问和 Launch 开销，也可能引入冷启动、Guard 和重新编译成本。</p>
 </div>
 
-\`torch.compile()\` 看似是一次函数包装，但背后至少有两类工作：**捕获程序中可优化的计算关系**，以及**为给定硬件选择合适的算子融合、调度和代码生成路径**。理解它时，应该把前端的 Dynamo 与后端的 Inductor 分开，也要区分训练时的 AOTAutograd 与另一个含义不同的离线 AOT Compile。
+`torch.compile()` 看似是一次函数包装，但背后至少有两类工作：**捕获程序中可优化的计算关系**，以及**为给定硬件选择合适的算子融合、调度和代码生成路径**。理解它时，应该把前端的 Dynamo 与后端的 Inductor 分开，也要区分训练时的 AOTAutograd 与另一个含义不同的离线 AOT Compile。
 
 本文以公开的 [PyTorch Compiler 官方文档](https://docs.pytorch.org/docs/stable/torch.compiler.html) 作为机制核对依据，在原有学习笔记基础上补充动态图捕获、Guard、动态图形状、反向传播与 CUDA Graph 的关联。
 
@@ -46,7 +46,7 @@ Y=\operatorname{relu}(X\cdot 2+1)
 
 一个简化的入口如下：
 
-\`\`\`python
+```python
 import torch
 
 @torch.compile
@@ -55,7 +55,7 @@ def fn(x):
 
 x = torch.randn(1024, device="cuda")
 y = fn(x)
-\`\`\`
+```
 
 第一次调用可能需要捕获与编译，后续满足相应 Guard 的调用才可能复用已经生成的结果。编译得到的代码可以来自 Inductor/Triton 或其他 Backend，不应将“调用 torch.compile”理解成每次都重新生成一个 GPU Kernel。
 
@@ -73,13 +73,13 @@ y = fn(x)
 
 Graph Break 会打断融合范围，并使多个编译图之间存在 Python 调用开销。因此它可能损害性能，但不必然影响结果正确性。
 
-\`fullgraph=True\` 可以用于更严格地检查是否存在未捕获路径；生产代码是否应该强制 Fullgraph，需要结合模型动态控制流和编译收益评估。
+`fullgraph=True` 可以用于更严格地检查是否存在未捕获路径；生产代码是否应该强制 Fullgraph，需要结合模型动态控制流和编译收益评估。
 
 ## 四、Guards 与 Recompilation：同一个函数为何编译多次？
 
 一个编译版本通常依赖某些假设：输入 Tensor 的 Shape / Dtype、设备、模块属性或相关 Python 状态。**Guard** 会检查当前调用是否还满足这些假设。
 
-假设一个函数第一次接收 \`[32, 128]\`，后续接收 \`[64, 128]\`。如果当前编译图是针对固定尺寸生成的，而动态 Shape 处理不能覆盖新输入，就可能触发另一轮捕获和编译。
+假设一个函数第一次接收 `[32, 128]`，后续接收 `[64, 128]`。如果当前编译图是针对固定尺寸生成的，而动态 Shape 处理不能覆盖新输入，就可能触发另一轮捕获和编译。
 
 这意味着动态请求较多的推理服务，需要同时关心：
 
@@ -88,7 +88,7 @@ Graph Break 会打断融合范围，并使多个编译图之间存在 Python 调
 - 动态 Shape 支持范围与生成代码的泛化程度。
 - 缓存是否被正确复用，以及是否触及编译结果数量或资源限制。
 
-排查时可使用 \`TORCH_LOGS=recompiles\`、相关 Guard 日志和官方建议的分析工具，而不是只统计第一次调用的运行时间。
+排查时可使用 `TORCH_LOGS=recompiles`、相关 Guard 日志和官方建议的分析工具，而不是只统计第一次调用的运行时间。
 
 ## 五、AOTAutograd：为什么训练图比推理图复杂？
 
@@ -121,7 +121,7 @@ CUDA Graph 可以降低重复 Kernel Launch 的 CPU 调度成本，但它和 Dyn
 - FX Graph 记录可优化的 PyTorch 算子关系。
 - CUDA Graph Capture / Replay 记录特定 CUDA 工作路径及相关设备地址和执行条件。
 
-\`torch.compile(mode="reduce-overhead")\` 等配置可以在适用场景利用 CUDA Graph 降低 Overhead，但这不是普遍保证。动态 Shape、输入变异、控制流、Buffer 地址和部分不兼容操作都可能影响 Capture / Replay 的可行性。
+`torch.compile(mode="reduce-overhead")` 等配置可以在适用场景利用 CUDA Graph 降低 Overhead，但这不是普遍保证。动态 Shape、输入变异、控制流、Buffer 地址和部分不兼容操作都可能影响 Capture / Replay 的可行性。
 
 像 vLLM 这类请求长度和批量大小持续变化的系统，会通过 Bucket、形状专门化或特定的 Graph 管理策略减少 Overhead，而不是假定任意请求都能复用同一张 Graph。
 
@@ -142,7 +142,7 @@ CUDA Graph 可以降低重复 Kernel Launch 的 CPU 调度成本，但它和 Dyn
 
 ## 九、总结
 
-理解 \`torch.compile\` 可以沿一条主线展开：**Dynamo 捕获图 → Guard 决定复用条件 → AOTAutograd 处理训练图 → Inductor 决定融合与调度 → Triton/其他 Backend 执行 GPU 或 CPU Kernel**。
+理解 `torch.compile` 可以沿一条主线展开：**Dynamo 捕获图 → Guard 决定复用条件 → AOTAutograd 处理训练图 → Inductor 决定融合与调度 → Triton/其他 Backend 执行 GPU 或 CPU Kernel**。
 
 性能问题则需要反向排查：是 Graph Break 太多、Shape 触发反复编译、Kernel Launch 过于分散、Fusion 增大寄存器压力，还是 CUDA Graph 不适用？
 
@@ -150,4 +150,4 @@ CUDA Graph 可以降低重复 Kernel Launch 的 CPU 调度成本，但它和 Dyn
 
 [PyTorch torch.compiler](https://docs.pytorch.org/docs/stable/torch.compiler.html) · [Dynamo Overview](https://docs.pytorch.org/docs/main/user_guide/torch_compiler/torch.compiler_dynamo_overview.html) · [Compiler Programming Model](https://docs.pytorch.org/docs/main/user_guide/torch_compiler/compile/programming_model.html) · [Graph Breaks](https://docs.pytorch.org/docs/main/user_guide/torch_compiler/compile/programming_model.graph_breaks_index.html) · [Reducing Compile Time](https://docs.pytorch.org/docs/main/user_guide/torch_compiler/compile/programming_model.reducing_compile_time.html)
 
-本文在已有视频学习笔记基础上，补充了官方文档中的 Guard、Recompilation、编译后端与部署边界。示例没有包含实际 Benchmark，具体行为以使用的 PyTorch 版本和硬件为准。
+本文基于 PyTorch 官方技术文档解释 Guard、Recompilation、编译后端与部署边界。示例不包含实际 Benchmark，具体行为以使用的 PyTorch 版本和硬件为准。
