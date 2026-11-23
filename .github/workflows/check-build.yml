@@ -1,0 +1,57 @@
+name: 博客构建校验
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'docs/**'
+      - 'package.json'
+      - '.github/workflows/check-build.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: 安装依赖
+        run: npm install --no-audit --no-fund
+      - name: 编译 VitePress
+        id: build
+        shell: bash
+        run: |
+          set +e
+          npm run docs:build
+          code=$?
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          exit 0
+      - name: 保存构建结果
+        if: always() && steps.build.outputs.exit_code != ''
+        env:
+          BUILD_EXIT_CODE: ${{ steps.build.outputs.exit_code }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          Path('status').mkdir(exist_ok=True)
+          result={'run_id':os.environ['GITHUB_RUN_ID'],'result':'success' if os.environ['BUILD_EXIT_CODE']=='0' else 'failure'}
+          Path('status/site_build.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n')
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add status/site_build.json
+          if ! git diff --cached --quiet; then
+            git commit -m "记录博客构建状态 [skip ci]"
+            git push
+          fi
+      - name: 确认编译成功
+        if: steps.build.outputs.exit_code != '0'
+        run: exit 1
