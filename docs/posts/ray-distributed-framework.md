@@ -22,7 +22,7 @@ Ray 提供了一套跨进程与跨节点的执行抽象：**Task** 负责一次�
 
 ### Task：函数的远程执行
 
-\`\`\`python
+```python
 import ray
 
 ray.init()
@@ -33,13 +33,13 @@ def square(x):
 
 refs = [square.remote(i) for i in range(4)]
 print(ray.get(refs))  # [0, 1, 4, 9]
-\`\`\`
+```
 
-\`square.remote(i)\` 返回的是一个 **ObjectRef**，而不是函数执行结果，也不是普通任务 ID。Driver 可以先提交多个独立的 Task，再用 \`ray.get\` 等待结果。这类任务适合数据预处理、独立评估或仿真。远程执行不保证一定与串行运行相比更快；细粒度任务还要考虑调度、序列化和对象传输成本。
+`square.remote(i)` 返回的是一个 **ObjectRef**，而不是函数执行结果，也不是普通任务 ID。Driver 可以先提交多个独立的 Task，再用 `ray.get` 等待结果。这类任务适合数据预处理、独立评估或仿真。远程执行不保证一定与串行运行相比更快；细粒度任务还要考虑调度、序列化和对象传输成本。
 
 ### Actor：带状态的远程进程
 
-\`\`\`python
+```python
 @ray.remote
 class Counter:
     def __init__(self):
@@ -52,7 +52,7 @@ class Counter:
 counter = Counter.remote()
 print(ray.get(counter.inc.remote()))  # 1
 print(ray.get(counter.inc.remote()))  # 2
-\`\`\`
+```
 
 Actor 通过远程方法操作自己的状态，适合模型 Worker、持续运行的服务或参数状态。**状态持续存在不等于每个方法都可以并发执行**：普通 Actor、异步 Actor 和并发组的执行语义不一样。
 
@@ -63,7 +63,7 @@ Actor 通过远程方法操作自己的状态，适合模型 Worker、持续运�
 
 ### ObjectRef：先建立依赖，再获得实际数据
 
-\`\`\`python
+```python
 @ray.remote
 def produce():
     return [1, 2, 3]
@@ -75,9 +75,9 @@ def consume(values):
 ref_a = produce.remote()
 ref_b = consume.remote(ref_a)
 print(ray.get(ref_b))  # 6
-\`\`\`
+```
 
-顶层传入的 \`ObjectRef\` 可以建立执行依赖，消费者无需先在 Driver 上获取生产者的数据。Ray 会在依赖就绪后安排执行。在需要逐步获取完成结果时，\`ray.wait(refs, num_returns=1)\` 返回就绪与未就绪的 **引用列表**，不是直接返回数据对象。
+顶层传入的 `ObjectRef` 可以建立执行依赖，消费者无需先在 Driver 上获取生产者的数据。Ray 会在依赖就绪后安排执行。在需要逐步获取完成结果时，`ray.wait(refs, num_returns=1)` 返回就绪与未就绪的 **引用列表**，不是直接返回数据对象。
 
 <figure class="asb-figure asb-figure--cover">
   <button class="asb-zoom-trigger" type="button" aria-label="放大 Ray ObjectRef 数据依赖图"><img src="/diagrams/ray-object-dag.svg" alt="Ray 的任务数据依赖和 Object Store" loading="lazy" /></button>
@@ -134,7 +134,7 @@ Ray 将返回对象的引用和对象值分开管理。结果可能存在 Object
 
 设 Node A 和 Node B 各有一张 GPU，先使其加入同一个 Ray 集群，再让 vLLM 采用 Ray Executor 与两卡 TP：
 
-\`\`\`bash
+```bash
 # Node A
 ray start --head --port=6379
 
@@ -145,7 +145,7 @@ ray start --address=<HEAD_IP>:6379
 vllm serve <MODEL_PATH> \
   --tensor-parallel-size 2 \
   --distributed-executor-backend ray
-\`\`\`
+```
 
 这是为了说明各组件的**职责和参数关系**，不是可直接复制到任意集群的完整安装指南。分布式部署还要保证版本兼容、模型文件访问、GPU/NIC 设备可见性、网络与通信库配置。
 
