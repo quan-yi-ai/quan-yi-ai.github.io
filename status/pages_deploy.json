@@ -98,9 +98,9 @@
     },
     "migrated_articles_all_ok": true
   },
-  "run_id": "45152690812",
-  "source_sha": "abf0f4ce330aac0e087bf1e459b7a3bf148e009f",
-  "build": "success",
+  "run_id": "45152970844",
+  "source_sha": "d214c59925cd97d9e014e3cb8aa2eb68f1c4b87b",
+  "build": "cancelled",
   "deploy": "cancelled",
   "result": "failure"
 }
