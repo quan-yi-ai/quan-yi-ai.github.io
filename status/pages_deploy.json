@@ -11,11 +11,37 @@
     "svg_is_vector": true,
     "transferqueue_http_status": 200,
     "transferqueue_article_present": true,
-    "transferqueue_figure_count": 4,
-    "transferqueue_svg_vector": true
+    "transferqueue_figure_count": 8,
+    "transferqueue_svg_vector": true,
+    "editorial_pages": {
+      "ray": {
+        "http_status": 200,
+        "updated_heading": true,
+        "old_editorial_heading_absent": true,
+        "figure_count": 4
+      },
+      "transferqueue": {
+        "http_status": 200,
+        "updated_heading": true,
+        "old_editorial_heading_absent": true,
+        "figure_count": 8
+      },
+      "rust": {
+        "http_status": 200,
+        "updated_heading": true,
+        "old_editorial_heading_absent": true,
+        "figure_count": 1
+      },
+      "parallel": {
+        "http_status": 200,
+        "updated_heading": true,
+        "old_editorial_heading_absent": true,
+        "figure_count": 8
+      }
+    }
   },
-  "run_id": "45147313083",
-  "source_sha": "b2046ad0f7e25cd1affc14b4e4a7c3744a827275",
+  "run_id": "45147446557",
+  "source_sha": "e53176dbd019faffac82fe6aab3877150822fef0",
   "build": "success",
   "deploy": "success",
   "result": "success"
