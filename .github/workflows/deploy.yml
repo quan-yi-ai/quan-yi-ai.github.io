@@ -147,6 +147,7 @@ jobs:
             "speculative-decoding-guide",
             "rlkernel-moe-router-consistency",
             "multimodal-generation-benchmark",
+            "sglang-startup-log-analysis",
           ]
           live["migrated_articles"] = {}
           for slug in migrated_slugs:
