@@ -14,9 +14,9 @@
     "transferqueue_figure_count": 4,
     "transferqueue_svg_vector": true
   },
-  "run_id": "45147288514",
-  "source_sha": "61357aa75356c97cdcd806e7dd184f61d60f8ea5",
-  "build": "cancelled",
-  "deploy": "cancelled",
-  "result": "failure"
+  "run_id": "45147313083",
+  "source_sha": "b2046ad0f7e25cd1affc14b4e4a7c3744a827275",
+  "build": "success",
+  "deploy": "success",
+  "result": "success"
 }
