@@ -97,3 +97,216 @@ html { scroll-behavior:smooth; }
 .vp-doc>h1 { margin-bottom:18px; }
 .vp-doc>h1 + p {color:var(--vp-c-text-2);font-size:1.06rem;line-height:1.85;}
 @media (max-width:640px) {.vp-doc .asb-figure {padding:10px;margin:22px -6px;}.vp-doc table td,.vp-doc table th {padding:9px;}}
+
+
+/* ===== Editorial article layout (2026 revision) =====
+   Scope to story pages only; category pages and the home page keep their layout. */
+.VPDoc:has(.asb-story-header) {
+  --asb-reading-width: 790px;
+  padding-top: 52px;
+}
+.VPDoc:has(.asb-story-header) .container {
+  max-width: 1330px !important;
+  margin: 0 auto;
+}
+.VPDoc:has(.asb-story-header) .content {
+  min-width: 0;
+  padding-bottom: 90px;
+}
+.VPDoc:has(.asb-story-header) .content-container {
+  max-width: var(--asb-reading-width) !important;
+  margin: 0;
+}
+.VPDoc:has(.asb-story-header) .aside {
+  padding-left: 42px;
+  width: 260px;
+  max-width: 260px;
+}
+.VPDoc:has(.asb-story-header) .aside-container {
+  width: 224px;
+}
+.VPDoc:has(.asb-story-header) .VPDocAsideOutline .outline-title {
+  font-size: 12px;
+  font-weight: 750;
+  letter-spacing: .08em;
+}
+.VPDoc:has(.asb-story-header) .VPDocAsideOutline .outline-link {
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  word-break: break-word;
+  line-height: 1.55;
+  padding: 6px 0;
+  font-size: 12px;
+}
+.VPDoc:has(.asb-story-header) .VPDocAsideOutline .outline-link.active {
+  color: var(--vp-c-brand-1);
+  font-weight: 700;
+}
+.VPDoc:has(.asb-story-header) .vp-doc > h2 {
+  font-size: clamp(1.42rem, 2.2vw, 1.85rem);
+  letter-spacing: -.025em;
+  margin-top: 66px;
+  padding-top: 28px;
+  border-top: 1px solid var(--vp-c-divider);
+}
+.VPDoc:has(.asb-story-header) .vp-doc > h3 {
+  font-size: 1.25rem;
+  margin-top: 38px;
+}
+.VPDoc:has(.asb-story-header) .vp-doc p {
+  font-size: 15.5px;
+  line-height: 2;
+  letter-spacing: .012em;
+}
+.VPDoc:has(.asb-story-header) .vp-doc .asb-story-deck { font-size: 16px; }
+.VPDoc:has(.asb-story-header) .vp-doc li { line-height: 1.9; }
+.VPDoc:has(.asb-story-header) .vp-doc pre { font-size: 13px; }
+.asb-story-header {
+  margin: 4px 0 30px;
+}
+.asb-story-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin-bottom: 44px;
+  color: var(--vp-c-text-3);
+  font-size: 12px;
+}
+.asb-story-breadcrumb a {
+  color: var(--vp-c-text-2);
+  text-decoration: none;
+  transition: color .2s;
+}
+.asb-story-breadcrumb a:hover {color:var(--vp-c-brand-1);}
+.asb-story-header .asb-editorial-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  letter-spacing: .18em;
+  font-size: 10px;
+  font-weight: 800;
+}
+.asb-header-divider { color: var(--vp-c-text-3); }
+.asb-pulse {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--vp-c-brand-1);
+  box-shadow: 0 0 0 4px var(--vp-c-brand-soft);
+}
+.VPDoc .vp-doc .asb-story-header h1 {
+  margin: 14px 0 11px;
+  padding: 0;
+  border: 0;
+  font-size: clamp(2.85rem, 5.3vw, 4.6rem);
+  line-height: 1.17;
+  letter-spacing: -.065em;
+  font-weight: 800;
+}
+.VPDoc .vp-doc .asb-story-header .asb-story-subtitle {
+  color: var(--vp-c-text-1);
+  font-size: clamp(1.2rem, 2.2vw, 1.7rem);
+  font-weight: 570;
+  letter-spacing: -.025em;
+  line-height: 1.5;
+  margin: 0 0 19px;
+}
+.VPDoc .vp-doc .asb-story-header .asb-story-deck {
+  max-width: 695px;
+  margin: 0 0 23px;
+  line-height: 1.9;
+  color: var(--vp-c-text-2);
+}
+.asb-story-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 9px;
+  font-size: 12px;
+  color: var(--vp-c-text-3);
+}
+.asb-story-meta a { color: var(--vp-c-text-2); text-decoration:none; }
+.asb-story-meta a:hover {color:var(--vp-c-brand-1);}
+.asb-meta-dot {
+  width: 3px; height: 3px; border-radius: 50%;
+  background: var(--vp-c-text-3);
+}
+.VPDoc .vp-doc .asb-figure {
+  max-width: 100%;
+  margin: 35px 0 42px;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 15px;
+  background: var(--vp-c-bg-soft);
+  padding: 16px;
+  overflow: hidden;
+}
+.VPDoc .vp-doc .asb-figure a {
+  display: block;
+  border-radius: 9px;
+  overflow: hidden;
+  text-decoration: none;
+  cursor: zoom-in;
+}
+.VPDoc .vp-doc .asb-figure img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 9px;
+  transition: transform .24s ease;
+}
+.VPDoc .vp-doc .asb-figure a:hover img { transform: scale(1.015); }
+.VPDoc .vp-doc .asb-figure figcaption {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 13px 6px 2px;
+  color: var(--vp-c-text-2);
+  text-align: left;
+  font-size: 12px;
+  line-height: 1.65;
+  margin: 0;
+}
+.VPDoc .vp-doc .asb-figure figcaption span {
+  color: var(--vp-c-brand-1);
+  font-family: ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: .05em;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.VPDoc .vp-doc .asb-figure figcaption a {
+  color: var(--vp-c-brand-1);
+  cursor: pointer;
+  margin-left: auto;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.VPDoc .vp-doc .asb-figure--cover {
+  padding: 12px;
+  margin-top: 34px;
+  margin-bottom: 38px;
+}
+.VPDoc .vp-doc .asb-figure--cover img { border-radius: 9px; }
+@media (min-width: 1200px) {
+  .VPDoc:has(.asb-story-header) .content-container { max-width: 820px !important; }
+  .VPDoc:has(.asb-story-header) .aside { padding-left: 38px; }
+}
+@media (max-width: 959px) {
+  .VPDoc:has(.asb-story-header) { padding-top: 25px; }
+  .asb-story-breadcrumb { margin-bottom: 29px; }
+  .VPDoc .vp-doc .asb-story-header h1 { font-size: 3.15rem; }
+}
+@media (max-width: 640px) {
+  .VPDoc:has(.asb-story-header) { padding-top: 16px; }
+  .asb-story-breadcrumb { margin-bottom: 26px; }
+  .VPDoc .vp-doc .asb-story-header h1 { font-size: 2.7rem; }
+  .VPDoc .vp-doc .asb-figure { margin: 22px -8px 30px; padding: 9px; }
+  .VPDoc .vp-doc .asb-figure figcaption { gap: 6px; padding: 10px 7px 3px; }
+  .VPDoc .vp-doc .asb-figure figcaption a { margin-left: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .VPDoc .vp-doc .asb-figure img { transition:none; }
+  .VPDoc .vp-doc .asb-figure a:hover img { transform:none; }
+}
