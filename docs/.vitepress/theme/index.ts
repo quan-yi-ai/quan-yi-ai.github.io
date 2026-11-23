@@ -10,19 +10,7 @@ export default {
       if (document.documentElement.dataset.asbInteractions === 'ready') return
       document.documentElement.dataset.asbInteractions = 'ready'
 
-      // Ambient click effect: purely decorative, disabled for reduced motion.
-      document.addEventListener('pointerdown', (event) => {
-        if (event.button !== 0 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
-        if (event.pointerType === 'touch') return
-        const burst = document.createElement('span')
-        burst.className = 'asb-click-burst'
-        burst.style.left = `${event.clientX}px`
-        burst.style.top = `${event.clientY}px`
-        burst.setAttribute('aria-hidden', 'true')
-        document.body.appendChild(burst)
-        burst.addEventListener('animationend', () => burst.remove(), { once: true })
-      }, { passive: true })
-
+      // The global pointer animation is paused pending a style choice.
       // Accessible lightbox for all article figures, including vector SVG.
       const dialog = document.createElement('dialog')
       dialog.className = 'asb-image-lightbox'
