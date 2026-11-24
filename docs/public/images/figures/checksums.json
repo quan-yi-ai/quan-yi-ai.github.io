@@ -1,0 +1,123 @@
+{
+  "images": [
+    {
+      "path": "/images/figures/ray-distributed-framework-03.png",
+      "sha256": "b7aaf9886cb67e0787f43ae3d4c8fda38f80ad400d75abfd92fa390c78ea3346",
+      "bytes": 103957,
+      "width": 807,
+      "height": 418
+    },
+    {
+      "path": "/images/figures/ray-distributed-framework-04.png",
+      "sha256": "2b280733ba8339812d10500b4342a06a6357d0bafdb90b9ef252c488ae8442a3",
+      "bytes": 119016,
+      "width": 961,
+      "height": 446
+    },
+    {
+      "path": "/images/figures/ray-distributed-framework-05.png",
+      "sha256": "4ef4a036e1fb8c5b64bfdd80bcbe0a06829588685d508b94d4471f8420540e49",
+      "bytes": 296038,
+      "width": 1243,
+      "height": 577
+    },
+    {
+      "path": "/images/figures/transferqueue-01.png",
+      "sha256": "5c2b6c36b02bb4a224e45c344677235dad08de212a678a1cb76c964844e7662d",
+      "bytes": 805939,
+      "width": 1407,
+      "height": 1226
+    },
+    {
+      "path": "/images/figures/transferqueue-02.png",
+      "sha256": "ce4dc2fddcdce437257d27990ea0d3ca877ad5c18894c329ab520dfa2a7362ab",
+      "bytes": 387402,
+      "width": 886,
+      "height": 542
+    },
+    {
+      "path": "/images/figures/transferqueue-03.png",
+      "sha256": "f96c27ab23648cc6f82907bafc4fb026df0f0445f6841a95228455143f5183fc",
+      "bytes": 352836,
+      "width": 1440,
+      "height": 910
+    },
+    {
+      "path": "/images/figures/transferqueue-05.png",
+      "sha256": "aa34c275423e6ce06eafbcf5fd1c6df75ad8560a62ffcf66e55d1df587f0f08c",
+      "bytes": 246133,
+      "width": 916,
+      "height": 558
+    },
+    {
+      "path": "/images/figures/minicpmo-45-omni-inference-01.png",
+      "sha256": "b71647636efe4cf2dc39ea780cbfc5859c73065997bb70defcfb8b76566e1636",
+      "bytes": 172613,
+      "width": 701,
+      "height": 510
+    },
+    {
+      "path": "/images/figures/rl-posttraining-frameworks-01.png",
+      "sha256": "c0807bb111ec73fbe7e8d274f3fd01592ad925bc2cb5bccef58d9f5cca450be5",
+      "bytes": 342849,
+      "width": 1890,
+      "height": 1651
+    },
+    {
+      "path": "/images/figures/rl-posttraining-frameworks-03.png",
+      "sha256": "19ede3036732f98ff49346881ff9797c2e20611e87ee19de7e4771ffd8225c22",
+      "bytes": 282897,
+      "width": 1852,
+      "height": 1253
+    },
+    {
+      "path": "/images/figures/rl-posttraining-frameworks-04.png",
+      "sha256": "514a12d6021c025a35628be0e0e2e8e476ccdded1aaab310bcd57f91708ad6da",
+      "bytes": 274439,
+      "width": 2180,
+      "height": 1227
+    },
+    {
+      "path": "/images/figures/agentic-rl-infrastructure-01.png",
+      "sha256": "c23bbe6359baaafdfba501e527068e2327c5ddcc6cd2c6dae128f92b03b83a0c",
+      "bytes": 205950,
+      "width": 1080,
+      "height": 610
+    },
+    {
+      "path": "/images/figures/pytorch-compiler-illustrated-01.jpg",
+      "sha256": "ed977fb807c29484c6471b91f3db82b5771a44d18c721b2618bb22dba916a720",
+      "bytes": 455613,
+      "width": 2800,
+      "height": 1264
+    },
+    {
+      "path": "/images/figures/speculative-decoding-guide-01.jpg",
+      "sha256": "e8423a4dded3bfe287b559d88d6057e9e1310e2618ee11281319d2e3aec0ec7b",
+      "bytes": 222102,
+      "width": 1536,
+      "height": 2048
+    },
+    {
+      "path": "/images/figures/speculative-decoding-guide-02.png",
+      "sha256": "8ba3eb7a15b68739fb09a964fe82090cfc80d6770cf8395b9574e006f0cd3fbd",
+      "bytes": 140606,
+      "width": 748,
+      "height": 616
+    },
+    {
+      "path": "/images/figures/speculative-decoding-guide-04.png",
+      "sha256": "0c179f5941f69fb739c50c6738f70f60772d2b2fae1f44cb47bdb26b7b22352b",
+      "bytes": 795099,
+      "width": 1624,
+      "height": 734
+    },
+    {
+      "path": "/images/figures/speculative-decoding-guide-06.png",
+      "sha256": "99dc71d07bdda0ef9a3f3b91431026ea4c21d5de9b13091c5880e2ee3fc08ec5",
+      "bytes": 1009165,
+      "width": 1624,
+      "height": 1172
+    }
+  ]
+}

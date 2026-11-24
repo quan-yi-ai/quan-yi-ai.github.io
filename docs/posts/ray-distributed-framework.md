@@ -84,6 +84,17 @@ print(ray.get(ref_b))  # 6
   <figcaption>传递 ObjectRef 描述依赖，真正的对象值可在其他 Worker 或节点上。</figcaption>
 </figure>
 
+
+动态任务图既可以描述对象依赖，也可以记录任务调用关系和 Actor 状态顺序。三类边应分开理解：
+
+| 图中关系 | 表示什么 |
+| --- | --- |
+| 数据边（Data Edge） | 生产者生成对象，消费者读取该对象 |
+| 控制边（Control Edge） | 一个远程调用派生或提交另一个调用 |
+| 有状态边（Stateful Edge） | 同一个 Actor 连续方法调用间的状态依赖 |
+
+数据对象、远程函数调用和 Actor 方法调用构成这种逻辑图的节点。Actor 方法的真实并发与顺序仍由 Actor 类型和配置决定，不能从示意关系推出所有调用都必须串行。
+
 ## 二、Ray 集群架构与分布式任务调度
 
 | 组件 | 主要负责 | 不应该误解成 |
@@ -106,6 +117,28 @@ Head 节点提供关键控制服务，但 Ray 的调度涉及节点级资源管�
 实际阅读任务调度时，更值得依次考虑：**资源够不够、ObjectRef 依赖是否就绪、数据在哪个节点、Actor 是否有明确的放置约束**。CPU/GPU 资源规格、Placement Group 和节点可用性都可能影响调度结果。
 
 Ray 对资源的分配和执行地点的决定，不等于它同时负责业务框架内部的 GPU Kernel 或 NCCL 数据传输。
+
+
+### 早期 Ray 架构：从全局调度到节点级协作
+
+早期 Ray 资料常将架构分为应用层（Driver、Worker、Actor）与系统层（调度、对象存储、控制元数据）。其中“Local Scheduler → Global Scheduler”的两级调度图，描述的是早期设计；不能将它直接作为当前 Ray 每次提交任务的执行路径。
+
+<figure class="asb-figure">
+  <button class="asb-zoom-trigger" type="button" aria-label="放大：早期 Ray 应用层系统层和全局控制存储架构"><img src="/images/figures/ray-distributed-framework-03.png" alt="早期 Ray 应用层系统层和全局控制存储架构" loading="lazy" /></button>
+  <figcaption>早期架构中的 Global Scheduler、Local Scheduler、Object Store 与 GCS。图中署名：CSDN @zhaojiew10。</figcaption>
+</figure>
+
+<figure class="asb-figure">
+  <button class="asb-zoom-trigger" type="button" aria-label="放大：早期 Ray 任务提交调度与负载信息传播"><img src="/images/figures/ray-distributed-framework-04.png" alt="早期 Ray 任务提交调度与负载信息传播" loading="lazy" /></button>
+  <figcaption>黑色为任务提交、蓝色为调度、红色为负载信息；属于早期两级调度模型。图中署名：CSDN @zhaojiew10。</figcaption>
+</figure>
+
+下面以 a 在 N1、b 在 N2 为例，展示远程加法涉及的任务放置、依赖对象定位、跨节点传输和结果返回。图中的全局调度及 GCS 对象表细节同样属于早期模型；现代实现应按 Raylet 调度、对象所有权与当前对象传输协议阅读。
+
+<figure class="asb-figure">
+  <button class="asb-zoom-trigger" type="button" aria-label="放大：早期 Ray 跨节点 add remote 和 ray get 示例"><img src="/images/figures/ray-distributed-framework-05.png" alt="早期 Ray 跨节点 add remote 和 ray get 示例" loading="lazy" /></button>
+  <figcaption>远程计算还涉及数据依赖与对象传输。图中署名：CSDN @zhaojiew10；当前调度机制参见 <a href="https://docs.ray.io/en/latest/ray-core/scheduling/index.html">Ray Scheduling</a>。</figcaption>
+</figure>
 
 ## 三、对象生命周期与故障恢复
 

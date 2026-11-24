@@ -32,6 +32,12 @@ print(x.untyped_storage().nbytes())
 
 注意 `torch.empty()` 的“empty”不是指不占 GPU 显存，而是**不初始化其中的数值**。它仍然需要为所请求的数据规模提供合适的存储。
 
+
+<figure class="asb-figure">
+  <button class="asb-zoom-trigger" type="button" aria-label="放大：Tensor Storage 虚拟地址和物理显存的对应关系"><img src="/diagrams/gpu-tensor-storage.svg" alt="Tensor Storage 虚拟地址和物理显存的对应关系" loading="lazy" /></button>
+  <figcaption>Tensor 元数据、共享 Storage、设备虚拟地址与物理分配应分层理解。</figcaption>
+</figure>
+
 ## 二、PyTorch Caching Allocator：Allocated 与 Reserved
 
 PyTorch CUDA Caching Allocator 会复用已释放给分配器但尚未归还驱动的缓存块，以减少频繁的底层分配成本。因此，删除 Python 变量或释放 Tensor 引用，不一定立刻使 `nvidia-smi` 显示的占用下降。
@@ -106,6 +112,12 @@ TMS 的部分接入方式使用 `LD_PRELOAD` 优先加载动态库，拦截受�
 
 `LD_PRELOAD` 是动态链接器机制，**不是 CUDA VMM 的替代品**；并不是任何 CUDA 分配请求都一定经过同一套可预加载符号。
 
+
+<figure class="asb-figure">
+  <button class="asb-zoom-trigger" type="button" aria-label="放大：缓存分配器和内存分配 Hook 的接入边界"><img src="/diagrams/gpu-allocation-hook.svg" alt="缓存分配器和内存分配 Hook 的接入边界" loading="lazy" /></button>
+  <figcaption>Preload 拦截支持的底层符号；自定义分配器在另一层接入，覆盖范围取决于模式。</figcaption>
+</figure>
+
 ## 五、训推共置为什么需要 Sleep / Wake？
 
 在某些 RL Colocated 部署中，Trainer 与 Rollout 可能复用相同 GPU。训练更新需要模型参数、优化器状态和梯度缓冲，而推理采样希望获得足够空间存放 KV Cache 与推理工作区。反复销毁和重建完整训练进程会有较高成本，因此系统可能在训练与 Rollout 间执行 Sleep/Wake。
@@ -123,7 +135,7 @@ TMS 的部分接入方式使用 `LD_PRELOAD` 优先加载动态库，拦截受�
 Relax 的 [Selective CPU Offload PR #85](https://github.com/redai-studio/Relax/pull/85) 提供了理解该问题的工程案例：不只在底层追踪哪些字节被分配，还尝试根据 Megatron 训练状态的语义，选择需要备份和可以重建的 Buffer。
 
 <figure class="asb-figure asb-figure--cover">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大 Selective CPU Offload 数据路径"><img src="/diagrams/gpu-selective-offload.svg" alt="Selective Offload 将模型状态备份到 CPU 并在 Wake 时恢复" loading="lazy" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大 Selective CPU Offload 数据路径"><img src="/diagrams/gpu-selective-offload.svg" alt="Selective Offload 将必须保留的状态备份到 CPU，并释放可重建状态" loading="lazy" /></button>
   <figcaption>选择性卸载强调“保存什么、丢弃什么、什么时候能重新分配”，而不只是让显存占用下降。</figcaption>
 </figure>
 

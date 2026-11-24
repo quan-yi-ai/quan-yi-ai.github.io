@@ -600,3 +600,32 @@ html { scroll-behavior:smooth; }
   .VPDoc:has(.asb-story-header) .vp-doc .asb-figure .asb-zoom-trigger img { transition: none; }
   .VPDoc:has(.asb-story-header) .vp-doc .asb-figure .asb-zoom-trigger:hover img { transform: none; }
 }
+
+/* Large architecture figures can be inspected beyond the fit-to-window preview. */
+.asb-image-lightbox .asb-lightbox-image { cursor: zoom-in; background: #fff; }
+.asb-lightbox-zoom {
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
+  flex: 0 0 auto;
+  z-index: 2;
+  margin-right: 12px;
+  padding: 6px 12px;
+  border: 1px solid #78978e;
+  border-radius: 6px;
+  color: #e6f6f2;
+  background: #19362f;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.asb-lightbox-zoom:focus-visible { outline: 2px solid #75e6bf; outline-offset: 2px; }
+.asb-image-lightbox--zoomed[open] { display: block; overflow: auto; padding-top: 56px; }
+.asb-image-lightbox--zoomed .asb-lightbox-image {
+  max-width: none;
+  max-height: none;
+  height: auto;
+  margin: 8px auto 0;
+  cursor: zoom-out;
+}
+.asb-image-lightbox--zoomed .asb-lightbox-close { position: fixed; }
+.VPDoc .vp-doc .asb-figure img[src^="/images/figures/"] { background: #fff; }

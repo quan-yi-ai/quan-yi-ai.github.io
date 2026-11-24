@@ -100,6 +100,12 @@ Graph Break 会打断融合范围，并使多个编译图之间存在 Python 调
 
 **AOTAutograd 与“把编译产物打包部署”的 AOT Compile 不是同一个概念**。后者属于额外的提前编译与部署工作流，具体 API 和稳定性取决于 PyTorch 版本。
 
+
+<figure class="asb-figure">
+  <button class="asb-zoom-trigger" type="button" aria-label="放大：矩阵乘加法 ReLU 与逐行求和的前反向图"><img src="/images/figures/pytorch-compiler-illustrated-01.jpg" alt="矩阵乘加法 ReLU 与逐行求和的前反向图" loading="lazy" /></button>
+  <figcaption>矩阵乘、ReLU 和逐行求和的前反向对应关系：反向需要前向保存的输入与 ReLU 掩码。来源：<a href="https://www.bilibili.com/video/BV149h16QE7p">B 站 Cishoon《图解 PyTorch 编译器》</a>视频画面。</figcaption>
+</figure>
+
 ### 联合图如何决定保存与重算
 
 前向输出之外，反向还需要部分中间结果。AOTAutograd 可在联合图上使用分区策略，将计算切成前向与反向，并选择保存哪些值、重算哪些操作。最小割重计算分区器是其中一种实现，代价模型决定了内存和重计算之间的取舍。

@@ -64,14 +64,48 @@ export default {
       const image = document.createElement('img')
       image.className = 'asb-lightbox-image'
       image.alt = ''
-      dialog.append(close, image)
+      const zoom = document.createElement('button')
+      zoom.type = 'button'
+      zoom.className = 'asb-lightbox-zoom'
+      zoom.textContent = '放大'
+      zoom.setAttribute('aria-label', '放大图片')
+      zoom.setAttribute('aria-pressed', 'false')
+      dialog.append(close, zoom, image)
+
+      const resetZoom = () => {
+        dialog.classList.remove('asb-image-lightbox--zoomed')
+        image.style.removeProperty('width')
+        zoom.textContent = '放大'
+        zoom.setAttribute('aria-label', '放大图片')
+        zoom.setAttribute('aria-pressed', 'false')
+        dialog.scrollTop = 0
+        dialog.scrollLeft = 0
+      }
+      const toggleZoom = () => {
+        if (!image.complete || !image.naturalWidth) return
+        if (dialog.classList.contains('asb-image-lightbox--zoomed')) {
+          resetZoom()
+        } else {
+          const width = Math.max(image.naturalWidth, dialog.clientWidth * 1.75)
+          dialog.classList.add('asb-image-lightbox--zoomed')
+          image.style.width = `${width}px`
+          zoom.textContent = '适应窗口'
+          zoom.setAttribute('aria-label', '适应窗口')
+          zoom.setAttribute('aria-pressed', 'true')
+        }
+      }
+      zoom.addEventListener('click', toggleZoom)
+      image.addEventListener('click', toggleZoom)
       document.body.appendChild(dialog)
 
       close.addEventListener('click', () => dialog.close())
       dialog.addEventListener('click', (event) => {
         if (event.target === dialog) dialog.close()
       })
-      dialog.addEventListener('close', () => image.removeAttribute('src'))
+      dialog.addEventListener('close', () => {
+        resetZoom()
+        image.removeAttribute('src')
+      })
       document.addEventListener('click', (event) => {
         const target = event.target
         if (!(target instanceof Element)) return
@@ -79,6 +113,7 @@ export default {
         if (!trigger || dialog.open) return
         const original = trigger.querySelector('img')
         if (!original) return
+        resetZoom()
         image.src = original.currentSrc || original.src
         image.alt = original.alt
         dialog.showModal()

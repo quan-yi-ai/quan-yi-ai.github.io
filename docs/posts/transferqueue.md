@@ -44,14 +44,22 @@ TransferQueue 解决的不只是“把 Tensor 从 A 传到 B”的问题。它�
   <figcaption>计算任务与数据系统解耦：生产者写入样本，消费者按字段就绪状态读取</figcaption>
 </figure>
 
+
+<figure class="asb-figure">
+  <button class="asb-zoom-trigger" type="button" aria-label="放大：多 Rollout 和多 Update 的动态数据路由"><img src="/images/figures/transferqueue-01.png" alt="多 Rollout 和多 Update 的动态数据路由" loading="lazy" /></button>
+  <figcaption>TransferQueue 在生产端与消费端之间动态重组数据流。图中署名：知乎 @小波基；来源：<a href="https://zhuanlan.zhihu.com/p/1930244241625449814">TransferQueue 介绍</a>。</figcaption>
+</figure>
+
 ## 二、TransferQueue 的控制面与数据面
 
 TransferQueue 将**控制面**与**数据面**分离。控制面由 Controller 跟踪分区、样本索引、各字段的生产/消费状态与 Batch 选择；数据面由 StorageManager 与 StorageUnit 承载字段的存储、读取和传输。Ray 可以承担进程启动、发现等基础设施职责，但频繁的数据读写不等于每次都经过 Ray 对象传输。
 
-<figure class="asb-figure asb-figure--cover">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大图片：TransferQueue 的控制面和数据面"><img src="/diagrams/tq-figure-2.svg" alt="TransferQueue 的控制面和数据面" loading="lazy" /></button>
-  <figcaption>Controller 负责逻辑状态，StorageManager / StorageUnit 负责实际数据路径</figcaption>
+
+<figure class="asb-figure">
+  <button class="asb-zoom-trigger" type="button" aria-label="放大：TransferQueue 控制平面数据平面和训练推理角色"><img src="/images/figures/transferqueue-02.png" alt="TransferQueue 控制平面数据平面和训练推理角色" loading="lazy" /></button>
+  <figcaption>Actor、Reference、Reward、Rollout Controller 与 StorageUnit 的交互。图中虚线与实线区分控制与数据关系。来源：<a href="https://zhuanlan.zhihu.com/p/1930244241625449814">知乎 @小波基</a>。</figcaption>
 </figure>
+
 
 ### 样本索引、字段就绪与消费状态
 
@@ -60,6 +68,12 @@ TransferQueue 将**控制面**与**数据面**分离。控制面由 Controller �
 <figure class="asb-figure asb-figure--cover">
   <button class="asb-zoom-trigger" type="button" aria-label="放大图片：四个样本的字段就绪和消费状态矩阵"><img src="/diagrams/tq-sample-lifecycle.svg" alt="四个样本的字段就绪和消费状态矩阵" loading="lazy" /></button>
   <figcaption>按样本和字段组织的就绪状态示例（非运行时截图）</figcaption>
+</figure>
+
+
+<figure class="asb-figure">
+  <button class="asb-zoom-trigger" type="button" aria-label="放大：StorageUnit 上按样本行字段列组织的并发读写"><img src="/images/figures/transferqueue-03.png" alt="StorageUnit 上按样本行字段列组织的并发读写" loading="lazy" /></button>
+  <figcaption>字段分布到多个 StorageUnit，并允许不同阶段并发读写不同样本字段。来源：<a href="https://zhuanlan.zhihu.com/p/1930244241625449814">知乎 @小波基</a>。</figcaption>
 </figure>
 
 例如，某 Trainer 要求字段 `response`、`reward` 和 `logprobs`，那么仅有 Prompt 或 Response 的样本都不能直接满足该请求。**Ready 不是一个笼统的“样本完成”布尔值，而要结合请求字段和消费任务判断。** 消费状态也需要区分 Task，不能把一个任务消费过直接理解成所有下游任务都不可再读。
@@ -139,6 +153,12 @@ if meta.size:
 
 对训练侧，可以把上述读取逻辑进一步包装成 DataLoader / Iterator，让模型训练代码关注 Batch，而不必直接了解 Controller 与 StorageUnit 的通信协议。
 
+
+<figure class="asb-figure">
+  <button class="asb-zoom-trigger" type="button" aria-label="放大：传统工作流与 TransferQueue 流式 DataLoader 的重叠"><img src="/images/figures/transferqueue-05.png" alt="传统工作流与 TransferQueue 流式 DataLoader 的重叠" loading="lazy" /></button>
+  <figcaption>按字段就绪推进不同阶段，提供流水线重叠机会。横轴与箭头为机制示意，图中的 End-to-End Benefit 不是本文设备上的实测值。来源：<a href="https://zhuanlan.zhihu.com/p/1933259599953232589">知乎 @小波基 · 算法编排</a>。</figcaption>
+</figure>
+
 ### 策略版本与一步异步约束
 
 DataFlow 让**任务执行时间**更灵活，但不自动保证 On-policy 条件。所谓“一步异步”，通常是让训练使用由上一策略版本生成的数据；它是一种需要明确约束的调度方式，并非 TransferQueue 的默认语义或所有算法都能无条件接受的策略。
@@ -191,6 +211,12 @@ backend:
 ```
 
 上述配置用于说明关键参数，并非完整部署文件。MooncakeStore 的实际传输协议以配置为准：启用该后端不意味着必然使用 RDMA，GPUDirect RDMA 还依赖受支持的 GPU、NIC、驱动与初始化条件。
+
+
+<figure class="asb-figure">
+  <button class="asb-zoom-trigger" type="button" aria-label="放大：SimpleStorage 与 MooncakeStore 的存储和传输路径"><img src="/diagrams/tq-backend-paths.svg" alt="SimpleStorage 与 MooncakeStore 的存储和传输路径" loading="lazy" /></button>
+  <figcaption>基础 CPU 内存路径与可配置的分层 KV / TCP / RDMA 路径；实际拷贝与 Staging 由后端、字段和配置决定。</figcaption>
+</figure>
 
 ### 存储后端的选型维度
 

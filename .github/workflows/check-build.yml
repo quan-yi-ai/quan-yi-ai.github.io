@@ -24,6 +24,8 @@ jobs:
           node-version: 22
       - name: 安装依赖
         run: npm install --no-audit --no-fund
+      - name: 核对文章图片与原图校验和
+        run: python scripts/check_article_images.py
       - name: 编译 VitePress
         id: build
         shell: bash

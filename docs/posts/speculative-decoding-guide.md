@@ -49,6 +49,12 @@ $
 
 接受路径为 token x 提供的概率质量是 min(p(x),q(x))；拒绝后的校正补回剩余质量。两者相加等于 p(x)。这个结论针对保持分布的验证算法；仅仅并行计算目标模型的分数，还不足以证明无损。
 
+
+<figure class="asb-figure">
+  <button class="asb-zoom-trigger" type="button" aria-label="放大：接受拒绝采样保持目标分布的手写推导"><img src="/images/figures/speculative-decoding-guide-01.jpg" alt="接受拒绝采样保持目标分布的手写推导" loading="lazy" /></button>
+  <figcaption>单 Token 的接受质量为 min(p(t), q(t))，拒绝后的校正路径补回 max(0, p(t)−q(t))。</figcaption>
+</figure>
+
 多 token 验证沿候选前缀依次决定接受情况：首个拒绝位置输出校正 token，后续草稿作废；全部候选被接受时，可以再从目标分布产生一个额外 token。验证模型虽然同时计算了多个位置，但较后位置的分数以对应草稿前缀为条件，所以不能跳过中间拒绝的位置继续提交。
 
 保持分布也不要求在相同随机种子下逐 token 输出同一序列，因为随机数的消费顺序可能变化。Greedy 对齐与随机采样的分布保持应分别验证。
@@ -108,6 +114,12 @@ Medusa 在共享隐藏状态上增加多个未来位置预测头。各头共享�
 
 候选按选定树形组织，而不必穷举全部笛卡尔积。Tree Attention 让每个节点只读取自己的祖先；验证后提交满足规则的连续前缀。Medusa 的 typical acceptance 属于另一种接受策略，生成质量相近与严格保持随机采样分布需要分别讨论。参见[Medusa 论文](https://arxiv.org/abs/2401.10774)。
 
+
+<figure class="asb-figure">
+  <button class="asb-zoom-trigger" type="button" aria-label="放大：Medusa 共享主干隐藏状态和多个预测头"><img src="/images/figures/speculative-decoding-guide-02.png" alt="Medusa 共享主干隐藏状态和多个预测头" loading="lazy" /></button>
+  <figcaption>Medusa 多头预测与候选组合。来源：<a href="https://github.com/FasterDecoding/Medusa">Medusa 项目</a>。</figcaption>
+</figure>
+
 ### MTP：把前一预测深度的表示接入下一深度
 
 MTP 是多 token 预测这一类目标与结构的统称。以 [DeepSeek-V3](https://arxiv.org/html/2412.19437v2#S2.SS2)为例，主干位置 i 的表示预测 t_(i+1)，第 k 个额外模块组合上一深度表示和 t_(i+k) 的嵌入，预测 t_(i+k+1)：
@@ -117,6 +129,12 @@ z_i^k=M_k[\operatorname{RMSNorm}(h_i^{k-1});\operatorname{RMSNorm}(\operatorname
 \qquad h^k=\operatorname{TRM}_k(z^k).
 $$
 
+
+<figure class="asb-figure">
+  <button class="asb-zoom-trigger" type="button" aria-label="放大：DeepSeek-V3 MTP 模块的深度与 Token 索引"><img src="/diagrams/speculative-mtp-depth.svg" alt="DeepSeek-V3 MTP 模块的深度与 Token 索引" loading="lazy" /></button>
+  <figcaption>固定位置 i，额外预测深度 k 将目标推进到 t_(i+k+1)。依据 <a href="https://arxiv.org/html/2412.19437v2#S2.SS2">DeepSeek-V3 §2.2</a>。</figcaption>
+</figure>
+
 嵌入与输出头和主模型共享。训练使用真实序列，起草时使用候选，因此可能存在分布偏移；影响大小要结合训练方法与实际接受长度衡量。较长草稿还受模块容量、顺序执行成本和验证预算制约，不存在通用的固定长度上限。
 
 ### EAGLE：带 token 条件的特征预测
@@ -125,11 +143,30 @@ $$
 
 它的取舍是以轻量的顺序草稿计算换取更好的条件依赖。更长候选需要更多草稿工作，但延迟还受树形结构、批处理和硬件影响。
 
+
+<figure class="asb-figure">
+  <button class="asb-zoom-trigger" type="button" aria-label="放大：EAGLE 论文比较四种草稿生成机制"><img src="/images/figures/speculative-decoding-guide-04.png" alt="EAGLE 论文比较四种草稿生成机制" loading="lazy" /></button>
+  <figcaption>Speculative Sampling、Lookahead、Medusa 与原始 EAGLE 的机制对照。图中附带的 Lookahead 注释应结合前文的 Jacobi 迭代理解；它仍运行目标网络。来源：<a href="https://arxiv.org/html/2401.15077v3#S3">EAGLE 原论文</a>。</figcaption>
+</figure>
+
+以已确认前缀“I love”为例：目标模型已有末尾特征并采样出 cats，EAGLE 将 cats 的嵌入与上一位置特征对齐，预测 cats 所在位置的特征，再提出 eat。条件 Token 与特征错开一步，才能把实际采样分支的信息传给草稿器。
+
+<figure class="asb-figure">
+  <button class="asb-zoom-trigger" type="button" aria-label="放大：EAGLE 偏移 Token 与预测特征的对应关系"><img src="/diagrams/speculative-eagle-shift.svg" alt="EAGLE 偏移 Token 与预测特征的对应关系" loading="lazy" /></button>
+  <figcaption>原始 EAGLE 的偏移条件与两步草稿示例；一条分支只展示索引关系，实际实现可生成树形候选。</figcaption>
+</figure>
+
 ### DFlash / DSpark：并行主干与轻量位置依赖
 
 [DFlash](https://docs.vllm.ai/projects/speculators/en/latest/user_guide/algorithms/dflash/)以目标隐藏状态和 mask 位置为条件，一次草稿前向预测候选块。草稿器内部允许非因果注意力，目标验证仍遵循自己的因果语义。mask 占位符不等于已经得到前一位置的真实候选值，块内位置相关性仍是重要问题。
 
 [DSpark](https://docs.vllm.ai/projects/speculators/en/latest/user_guide/algorithms/dspark/)增加低秩 Markov 修正和接受概率预测头，将前一候选的身份加入后续位置，并为验证长度提供信号。神经网络主干并行起草，位置修正仍可能带有轻量顺序依赖。自适应验证预算也已有 [Sequoia](https://arxiv.org/abs/2402.12374)等先前工作；不同方法的价值应结合自身机制分析。
+
+
+<figure class="asb-figure">
+  <button class="asb-zoom-trigger" type="button" aria-label="放大：DSpark 并行块串行修正与前缀调度"><img src="/images/figures/speculative-decoding-guide-06.png" alt="DSpark 并行块串行修正与前缀调度" loading="lazy" /></button>
+  <figcaption>并行块提供初始 Logits，轻量顺序修正建立位置依赖，调度器选择送入目标模型的候选前缀。来源：<a href="https://docs.vllm.ai/projects/speculators/en/latest/user_guide/algorithms/dspark/">DSpark / Speculators</a>。</figcaption>
+</figure>
 
 ## 五、工程实现还必须处理哪些问题？
 

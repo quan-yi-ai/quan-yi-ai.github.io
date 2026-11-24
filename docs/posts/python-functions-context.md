@@ -53,6 +53,12 @@ def work(x):
 
 `@timer` 可以理解为定义时执行 `work = timer(work)`。装饰器本身不是在每次调用 `work()` 时才被构造；执行的是返回后的 `wrapper`。这里使用 `functools.wraps` 保留常用的函数元数据，但它也不会自动使同步装饰器适用于异步函数。
 
+
+<figure class="asb-figure">
+  <button class="asb-zoom-trigger" type="button" aria-label="放大：装饰器定义时包装与闭包持有原函数"><img src="/diagrams/python-decorator-closure.svg" alt="装饰器定义时包装与闭包持有原函数" loading="lazy" /></button>
+  <figcaption>定义时建立 wrapper 并重新绑定函数名；调用时才执行包装逻辑和原函数。</figcaption>
+</figure>
+
 ### 带参数装饰器为什么多一层？
 
 ```python
@@ -166,6 +172,12 @@ with Managed():
 ```
 
 这里的“退出”不意味着一定在函数调用之后立即释放所有对象，真正发生的操作由上下文管理器的实现决定；例如文件关闭与数据库事务提交/回滚是不同语义。
+
+
+<figure class="asb-figure">
+  <button class="asb-zoom-trigger" type="button" aria-label="放大：with 进入使用退出与异常处理"><img src="/diagrams/python-context-lifecycle.svg" alt="with 进入使用退出与异常处理" loading="lazy" /></button>
+  <figcaption>__enter__ 成功后进入代码块，__exit__ 处理正常收尾或异常；返回真值可抑制代码块异常。</figcaption>
+</figure>
 
 ## 五、async with：清理自身也可能需要等待
 

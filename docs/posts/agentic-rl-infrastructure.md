@@ -67,6 +67,18 @@ Agentic RL 更突出的是**策略与外部环境的交互过程**：模型动�
 
 流式数据交付并不自动解决长尾。对于一个 GRPO Group，如果训练算法要求同 Prompt 的多个 Response 一起计算组内优势，那么单条轨迹先完成不代表 Group 已经可以直接用于训练。
 
+
+### Windowed FIFO：允许窗口内先完成先消费
+
+严格 FIFO 会被队头的慢轨迹阻塞；完全贪心地取所有已完成轨迹，则容易让早期训练批次偏向较短、较容易的任务。[MiniMax-M2 技术报告 §6.2.4](https://arxiv.org/html/2605.26494v2#S6.SS2.SSS4)提出 Windowed FIFO：只在生成队列的一个滑动窗口内取已完成轨迹，窗口外的轨迹即使完成也暂不消费；最老的未消费轨迹推进后，窗口才能向右移动。
+
+<figure class="asb-figure">
+  <button class="asb-zoom-trigger" type="button" aria-label="放大：严格 FIFO 贪心调度和 Windowed FIFO 的轨迹消费对比"><img src="/images/figures/agentic-rl-infrastructure-01.png" alt="严格 FIFO 贪心调度和 Windowed FIFO 的轨迹消费对比" loading="lazy" /></button>
+  <figcaption>窗口内可乱序消费，窗口外仍受顺序边界约束。图解署名：青稞 AI；机制来源：<a href="https://arxiv.org/html/2605.26494v2#S6.SS2.SSS4">MiniMax-M2 / Forge</a>。</figcaption>
+</figure>
+
+图中 W=4、batch=8 的数值用于说明该例；W=0.3N 是技术报告给出的配置示例，不是任意系统的固定最优值。窗口限制消费乱序程度，但允许的策略版本滞后仍需结合采样并发、参数更新和 Batch 规则确定。
+
 ### 策略版本与 Staleness
 
 异步系统里，Rollout 生成样本时使用的策略 \(\pi_{\theta_v}\) 可能落后于当前 Trainer 策略 \(\pi_{\theta_{v+k}}\)。这里的陈旧度 \(k\) 不是仅用于日志的计数，它会影响 Importance Sampling Ratio 和训练稳定性。

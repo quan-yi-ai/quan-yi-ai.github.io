@@ -148,6 +148,9 @@ $$
 
 这只是**一个 Microbatch 的单个 Stage 边界激活**，不包括反向梯度、额外通信或流水调度开销。PP 的关键工程问题是 Microbatch 数量、Stage 负载均衡与 Pipeline Bubble。
 
+
+
+
 ### Sequence Parallel：让部分激活不必在整个 TP 组复制
 
 在 Megatron 风格的 TP+SP 中，常将 Norm / 残差等位置的激活沿序列维保留为 \([B,S/T,H]\)。进入需要完整 Token 的 Column Parallel GEMM 前，先在 TP 组 AllGather；Row Parallel GEMM 后使用 ReduceScatter，直接把输出恢复成 Token 分片。
@@ -155,6 +158,13 @@ $$
 这解释了一个容易混淆的点：**SP 和 CP 都出现“Token 切分”，但它们的目的和 Attention 跨卡依赖并不相同。** SP 常用于降低 TP 场景中的激活冗余；CP 则要让超长上下文的 Attention 跨卡完成。
 
 ## 五　上下文并行与专家并行
+
+
+
+<figure class="asb-figure">
+  <button class="asb-zoom-trigger" type="button" aria-label="放大：张量并行切 Head 和上下文并行切 Token 的局部形状"><img src="/diagrams/tp-cp-shapes.svg" alt="张量并行切 Head 和上下文并行切 Token 的局部形状" loading="lazy" /></button>
+  <figcaption>标准 MHA 中，TP 沿 Head 维分组，CP 沿序列维分段；每个 Head 的宽度 D_h 不变。</figcaption>
+</figure>
 
 ### Context Parallel：切 Token，但 Attention 还要看到全局上下文
 

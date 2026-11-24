@@ -82,6 +82,25 @@ A_i=\frac{R_i-\operatorname{mean}(R_1,\ldots,R_G)}
 
 这只是常见配置对照，不代表每个框架的所有算法变体都严格遵循这一张表。
 
+
+<figure class="asb-figure">
+  <button class="asb-zoom-trigger" type="button" aria-label="放大：PPO 与 GRPO 按同一逻辑步骤排列的流程对照"><img src="/images/figures/rl-posttraining-frameworks-01.png" alt="PPO 与 GRPO 按同一逻辑步骤排列的流程对照" loading="lazy" /></button>
+  <figcaption>蓝色表示共享系统职责，橙色表示典型算法差异；虚线体现可选 Reference 路径与不同循环。</figcaption>
+</figure>
+
+图中的“一条 Response / Prompt”只是 PPO 的一个采样配置示例，PPO 同样允许每个 Prompt 采多个 Response。Old Logprob 必须对应实际行为策略；训练侧重算需要匹配其版本与语义。Reward 可以来自规则或环境，不要求独立奖励模型；KL、Reference 与组内标准化也由具体配方决定。
+
+| 流程步骤 | 典型 PPO | 典型 GRPO |
+| --- | --- | --- |
+| Prompt 与采样 | 从任务分布采轨迹，可每 Prompt 多条 | 同 Prompt 采一组 Response |
+| Reward | 逐轨迹、逐 Token 或环境反馈 | 用组内奖励构造相对优势 |
+| Old Logprob | 对应实际行为策略 | 同样须匹配生成策略 |
+| Reference Logprob | 使用相关 KL 项时需要 | 使用相关 KL 项时需要 |
+| Value / Advantage | Critic 估值与 GAE 等方法 | 典型设计以组内奖励替代 Critic |
+| Loss / 更新对象 | Actor + Critic | Actor |
+| 权重同步 | 按迭代与异步约束更新 Rollout | 同样需要版本管理 |
+
+
 ## 三、为何要区分两个循环？
 
 训练程序中常见两个逻辑循环。
@@ -125,6 +144,27 @@ A_i=\frac{R_i-\operatorname{mean}(R_1,\ldots,R_G)}
 DPO 的偏好学习形式与 PPO/GRPO 的在线 RL Pipeline 也有区别，不宜仅仅把 DPO 看成一条“省略 Reward 模块的 PPO”。
 
 Agentic RL 则在普通文本 Rollout 上增加了工具调用、环境状态、可变 Turn 数、任务级 Reward 和更明显的长尾轨迹。此时数据系统不能只传一个最终 Response；它需要保留轨迹与状态边界，供相应的 Loss 和采样策略使用。
+
+
+### PPO、GRPO 与离线 DPO 的流程对照
+
+<figure class="asb-figure">
+  <button class="asb-zoom-trigger" type="button" aria-label="放大：在线 PPO GRPO 与离线 DPO 的训练流程对照"><img src="/images/figures/rl-posttraining-frameworks-03.png" alt="在线 PPO GRPO 与离线 DPO 的训练流程对照" loading="lazy" /></button>
+  <figcaption>典型在线 RL 会生成新轨迹；离线 DPO 使用已有偏好对，在给定参考策略下优化偏好目标。</figcaption>
+</figure>
+
+图中 DPO 的“不生成”指训练更新不调用在线 Rollout，偏好数据仍需要在此前收集。Reference Logprob 可以预计算，部分变体也采用不同参考构造；它与 PPO 的行为策略 Old Logprob 承担不同角色。
+
+### 扩展到扩散模型：保留数据主干，改变优化目标
+
+<figure class="asb-figure">
+  <button class="asb-zoom-trigger" type="button" aria-label="放大：FlowGRPO Flow-DPO DiffusionNFT 与 Diffusion-DPO 流程对照"><img src="/images/figures/rl-posttraining-frameworks-04.png" alt="FlowGRPO Flow-DPO DiffusionNFT 与 Diffusion-DPO 流程对照" loading="lazy" /></button>
+  <figcaption>扩散模型后训练的概念对照：在线采样、奖励、比值或重构目标与离线偏好优化。图中名称 Flow-DPO 指该图的在线方法，不能与离线 Diffusion-DPO 混同。</figcaption>
+</figure>
+
+扩散或 Flow 模型的生成轨迹由去噪步骤构成。使用策略比值的方法需要明确随机采样过程及其转移概率；采用 ratio-free 重构目标的方法则改变损失与旧模型/EMA 的用途。离线偏好优化消费已收集的优劣样本对，不执行同样的在线奖励采集循环。
+
+这些方法可以复用 Prompt 分发、样本交付和参数更新的系统能力，但训练端的时间步抽样、噪声构造、Logprob 或重构损失不同。图中的固定归一化、KL 和 Loss 写法是特定配方的概念表示，算法与具体定义参见 [Flow-GRPO](https://arxiv.org/abs/2505.05470)、[DiffusionNFT](https://arxiv.org/abs/2509.16117) 与 [Diffusion-DPO](https://arxiv.org/abs/2311.12908)。
 
 ## 七、总结：先画数据流，再选择训练框架
 
