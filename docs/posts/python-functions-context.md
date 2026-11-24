@@ -55,7 +55,7 @@ def work(x):
 
 
 <figure class="asb-figure">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大：装饰器定义时包装与闭包持有原函数"><img src="/diagrams/python-decorator-closure.svg" alt="装饰器定义时包装与闭包持有原函数" loading="lazy" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大：装饰器定义时包装与闭包持有原函数"><img width="960" height="585" src="/diagrams/python-decorator-closure.svg" alt="装饰器定义时包装与闭包持有原函数" loading="lazy" /></button>
   <figcaption>定义时建立 wrapper 并重新绑定函数名；调用时才执行包装逻辑和原函数。</figcaption>
 </figure>
 
@@ -132,7 +132,7 @@ print(next(g))  # produce 1, 然后得到 1
 对于数据处理中的流式迭代，生成器常用于避免一次性构造完整列表；但是否节约内存取决于上游输入、缓存和下游是否立即消费。
 
 <figure class="asb-figure asb-figure--cover">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大 Python 函数与资源协议图"><img src="/diagrams/python-runtime-protocols.svg" alt="闭包、生成器、上下文管理器与 asyncio 的不同状态边界" loading="lazy" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大 Python 函数与资源协议图"><img width="960" height="550" src="/diagrams/python-runtime-protocols.svg" alt="闭包、生成器、上下文管理器与 asyncio 的不同状态边界" loading="lazy" /></button>
   <figcaption>闭包保存词法环境，生成器保存暂停位置，上下文管理器定义资源退出协议。</figcaption>
 </figure>
 
@@ -175,7 +175,7 @@ with Managed():
 
 
 <figure class="asb-figure">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大：with 进入使用退出与异常处理"><img src="/diagrams/python-context-lifecycle.svg" alt="with 进入使用退出与异常处理" loading="lazy" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大：with 进入使用退出与异常处理"><img width="960" height="590" src="/diagrams/python-context-lifecycle.svg" alt="with 进入使用退出与异常处理" loading="lazy" /></button>
   <figcaption>__enter__ 成功后进入代码块，__exit__ 处理正常收尾或异常；返回真值可抑制代码块异常。</figcaption>
 </figure>
 

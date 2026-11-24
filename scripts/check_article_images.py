@@ -39,6 +39,8 @@ def check(root):
             src = a.get("src","")
             if not a.get("alt","").strip(): findings.append(f"{page}: missing alt: {src}")
             if not zoom: findings.append(f"{page}: missing zoom button: {src}")
+            if not all(a.get(k, "").isdigit() and int(a[k]) > 0 for k in ("width", "height")):
+                findings.append(f"{page}: missing intrinsic dimensions: {src}")
             if urlsplit(src).scheme:
                 findings.append(f"{page}: remote image dependency: {src}")
                 continue

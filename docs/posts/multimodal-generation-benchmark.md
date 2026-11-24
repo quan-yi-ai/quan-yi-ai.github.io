@@ -27,7 +27,7 @@ lastUpdated: false
 **Prompt → AR Conditioning / Token Generation → DiT Denoising → VAE Decode → Image Encoding → Serving Response。**
 
 <figure class="asb-figure asb-figure--cover">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大文生图分阶段性能链路"><img src="/diagrams/multimodal-benchmark-stages.svg" alt="AR、DiT、VAE、Serving 阶段的性能测量范围" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大文生图分阶段性能链路"><img width="960" height="455" src="/diagrams/multimodal-benchmark-stages.svg" alt="AR、DiT、VAE、Serving 阶段的性能测量范围" /></button>
   <figcaption>测量范围应覆盖 AR、DiT、VAE 与服务层之间的数据交付和同步开销。</figcaption>
 </figure>
 

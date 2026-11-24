@@ -25,7 +25,7 @@ lastUpdated: false
 RLinf 将分布式执行拆成几个相互配合的抽象：**Runner** 负责训练任务的生命周期，**Worker** 表示可远程部署的计算单元，**WorkerGroup** 表示一组并行 Worker，**Channel** 负责轨迹和其他数据交换，**ComponentPlacement** 描述组件的资源放置，**Hybrid Engine** 则连接 FSDP / Megatron 与推理后端。
 
 <figure class="asb-figure asb-figure--cover">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大 RLinf 整体架构"><img src="/diagrams/rlinf-architecture.svg" alt="从 YAML、Runner、WorkerGroup、Channel 到模型计算后端的架构示意" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大 RLinf 整体架构"><img width="960" height="600" src="/diagrams/rlinf-architecture.svg" alt="从 YAML、Runner、WorkerGroup、Channel 到模型计算后端的架构示意" /></button>
   <figcaption>配置定义资源和任务，Runner 组织执行阶段，WorkerGroup 与 Channel 承载分布式计算及数据路径。</figcaption>
 </figure>
 
@@ -106,7 +106,7 @@ AgentLoop 需要保留 Tool Observation、动作、Token Mask、轨迹边界及 
 训练引擎和推理引擎并不一定使用相同的并行拓扑。例如 Megatron 的 TP/PP/EP 分片与 SGLang/vLLM 的推理布局可能不同；即使参数数值相同，**参数名、张量形状、Shard 和目标 Rank 的映射关系**仍需要明确。
 
 <figure class="asb-figure asb-figure--cover">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大 RLinf 权重同步数据流"><img src="/diagrams/rlinf-weight-sync.svg" alt="RLinf 训练权重分片、转换、Rollout Engine 更新的流程" loading="lazy" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大 RLinf 权重同步数据流"><img width="960" height="590" src="/diagrams/rlinf-weight-sync.svg" alt="RLinf 训练权重分片、转换、Rollout Engine 更新的流程" loading="lazy" /></button>
   <figcaption>权重同步的核心不是发起一次复制，而是跨训练与推理数据布局正确映射、传输和应用模型版本。</figcaption>
 </figure>
 

@@ -32,7 +32,7 @@ lastUpdated: false
 | 长期维护模型与业务状态的服务 | 状态与生命周期 | 进程、线程、Actor 或服务组件 |
 
 <figure class="asb-figure asb-figure--cover">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大 Python 并发模型对比"><img src="/diagrams/python-concurrency-comparison.svg" alt="asyncio、线程和多进程的执行与隔离方式" loading="lazy" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大 Python 并发模型对比"><img width="960" height="485" src="/diagrams/python-concurrency-comparison.svg" alt="asyncio、线程和多进程的执行与隔离方式" loading="lazy" /></button>
   <figcaption>不同工具所管理的是不同层次：事件循环、操作系统线程与独立进程。</figcaption>
 </figure>
 
@@ -65,7 +65,7 @@ asyncio.run(main())
 协程执行到 `await` 时，如果被等待的对象尚未完成，它可以挂起并把执行权交回事件循环。事件循环随后调度其他已经就绪的回调或任务。当 I/O 完成，相应 Task 又变为可运行。
 
 <figure class="asb-figure asb-figure--cover">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大 Event Loop 调度图"><img src="/diagrams/python-event-loop-flow.svg" alt="Event Loop 在 I/O 等待期间调度其他协程执行" loading="lazy" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大 Event Loop 调度图"><img width="960" height="485" src="/diagrams/python-event-loop-flow.svg" alt="Event Loop 在 I/O 等待期间调度其他协程执行" loading="lazy" /></button>
   <figcaption>这里的并发来自等待期间切换任务，而不是在一个线程中同时执行两段 Python 字节码。</figcaption>
 </figure>
 
@@ -120,7 +120,7 @@ asyncio.run(main())
 ```
 
 <figure class="asb-figure asb-figure--cover">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大 Python TaskGroup 结构化并发图"><img src="/diagrams/python-structured-concurrency.svg" alt="TaskGroup 子任务生命周期、错误传播和取消机制" loading="lazy" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大 Python TaskGroup 结构化并发图"><img width="960" height="485" src="/diagrams/python-structured-concurrency.svg" alt="TaskGroup 子任务生命周期、错误传播和取消机制" loading="lazy" /></button>
   <figcaption>结构化并发关注的是任务所属范围与异常处理，不只是让几个函数同时启动。</figcaption>
 </figure>
 
@@ -131,7 +131,7 @@ asyncio.run(main())
 但 GIL 并不是“线程完全没有用”的意思。线程等待 Socket、磁盘 I/O 时可以让其他线程运行；某些原生扩展进行计算时也会释放 GIL，使多个线程有机会真正并行。PyTorch、NumPy 的部分操作还可能使用自身的原生线程池或设备端并行执行。
 
 <figure class="asb-figure asb-figure--cover">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大 Python GIL 与进程并行图"><img src="/diagrams/python-gil-execution.svg" alt="传统带 GIL 的 CPython 线程与多进程并行的区别" loading="lazy" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大 Python GIL 与进程并行图"><img width="960" height="485" src="/diagrams/python-gil-execution.svg" alt="传统带 GIL 的 CPython 线程与多进程并行的区别" loading="lazy" /></button>
   <figcaption>GIL 的作用范围与具体 Python 构建有关；多进程拥有独立解释器与内存空间。</figcaption>
 </figure>
 

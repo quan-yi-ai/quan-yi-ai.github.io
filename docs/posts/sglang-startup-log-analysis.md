@@ -30,7 +30,7 @@ sglang serve --model-path Qwen/Qwen3-0.6B \
 启动不仅是加载一份模型权重，还包括解析配置、创建 Worker、初始化分布式上下文、分配 KV Cache、执行 Graph Capture、初始化调度和 HTTP 接口。
 
 <figure class="asb-figure asb-figure--cover">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大 SGLang 启动阶段图"><img src="/diagrams/sglang-startup-stages.svg" alt="SGLang 配置、Distributed、权重、KV Cache、CUDA Graph 和 HTTP 服务初始化" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大 SGLang 启动阶段图"><img width="960" height="575" src="/diagrams/sglang-startup-stages.svg" alt="SGLang 配置、Distributed、权重、KV Cache、CUDA Graph 和 HTTP 服务初始化" /></button>
   <figcaption>启动阶段之间存在依赖，但细节和顺序受版本、执行后端与功能开关影响。</figcaption>
 </figure>
 
@@ -100,7 +100,7 @@ sglang serve --model-path Qwen/Qwen3-0.6B \
 也就是说，日志记录的 K 与 V Cache 各约 **12.82 GB**，合计约 **25.64 GB**；与权重的 1.18 GB 相比，KV Cache 占了明显更大的显存比例。
 
 <figure class="asb-figure asb-figure--cover">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大 SGLang 显存账本"><img src="/diagrams/sglang-gpu-budget.svg" alt="日志中模型权重、KV Cache K/V 和其他显存资源的占用关系" loading="lazy" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大 SGLang 显存账本"><img width="960" height="425" src="/diagrams/sglang-gpu-budget.svg" alt="日志中模型权重、KV Cache K/V 和其他显存资源的占用关系" loading="lazy" /></button>
   <figcaption>数字来自这次 RTX 5090 启动记录，不是 SGLang 通用的显存划分比例。</figcaption>
 </figure>
 

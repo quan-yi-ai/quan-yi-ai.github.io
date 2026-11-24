@@ -23,7 +23,7 @@ TransferQueue 的基础架构、样本就绪状态与存储后端机制见 [《T
 [TransferQueue](https://github.com/Ascend/TransferQueue) 最近提出两条相关但独立的重构方向：以 Rust 实现 Controller 的高频元数据处理，以及给 SimpleStorage 增加可插拔的 PayloadTransfer 接口。这为理解 Python、C++ 与 Rust 在系统基础设施中的分工提供了一个具体案例。
 
 <figure class="asb-figure asb-figure--cover">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大 TransferQueue 架构图"><img src="/diagrams/transferqueue-rearchitecture.svg" alt="TransferQueue 控制面与数据面两条重构路线的架构图" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大 TransferQueue 架构图"><img width="1120" height="520" src="/diagrams/transferqueue-rearchitecture.svg" alt="TransferQueue 控制面与数据面两条重构路线的架构图" /></button>
   <figcaption>同一条数据管道中，控制元数据的流转与 Tensor Payload 的传输不是同一件事。</figcaption>
 </figure>
 

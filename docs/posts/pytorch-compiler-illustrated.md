@@ -33,7 +33,7 @@ $
 普通 Eager 执行可能在 GPU 上分别发起乘法、加法和 ReLU 计算，并为中间结果分配或写回 Tensor。对于计算量很小的 Pointwise 操作，Kernel Launch 与中间数据的 HBM 读写可能比实际算术更值得优化。
 
 <figure class="asb-figure asb-figure--cover">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大 PyTorch 算子融合示意"><img src="/diagrams/compiler-fusion.svg" alt="Eager 多算子与融合 Kernel 的内存访问路径" loading="lazy" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大 PyTorch 算子融合示意"><img width="960" height="590" src="/diagrams/compiler-fusion.svg" alt="Eager 多算子与融合 Kernel 的内存访问路径" loading="lazy" /></button>
   <figcaption>融合允许中间计算在一个 Kernel 中完成，避免部分中间 Tensor 的物化和额外 Launch。</figcaption>
 </figure>
 
@@ -42,7 +42,7 @@ $
 ## 二、torch.compile 的整体流水线
 
 <figure class="asb-figure asb-figure--cover">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大 PyTorch 编译器全流程"><img src="/diagrams/compiler-stack.svg" alt="TorchDynamo、AOTAutograd、Inductor 和 Triton 之间的关系" loading="lazy" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大 PyTorch 编译器全流程"><img width="960" height="740" src="/diagrams/compiler-stack.svg" alt="TorchDynamo、AOTAutograd、Inductor 和 Triton 之间的关系" loading="lazy" /></button>
   <figcaption>Dynamo 负责捕获可编译区域；AOTAutograd 处理训练所需计算图；Inductor 执行优化与目标代码生成。</figcaption>
 </figure>
 
@@ -102,7 +102,7 @@ Graph Break 会打断融合范围，并使多个编译图之间存在 Python 调
 
 
 <figure class="asb-figure">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大：矩阵乘加法 ReLU 与逐行求和的前反向图"><img src="/images/figures/pytorch-compiler-illustrated-01.jpg" alt="矩阵乘加法 ReLU 与逐行求和的前反向图" loading="lazy" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大：矩阵乘加法 ReLU 与逐行求和的前反向图"><img width="2800" height="1264" src="/images/figures/pytorch-compiler-illustrated-01.jpg" alt="矩阵乘加法 ReLU 与逐行求和的前反向图" loading="lazy" /></button>
   <figcaption>矩阵乘、ReLU 和逐行求和的前反向对应关系：反向需要前向保存的输入与 ReLU 掩码。来源：<a href="https://www.bilibili.com/video/BV149h16QE7p">B 站 Cishoon《图解 PyTorch 编译器》</a>视频画面。</figcaption>
 </figure>
 

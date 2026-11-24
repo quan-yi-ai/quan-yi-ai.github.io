@@ -17,7 +17,7 @@ lastUpdated: false
 </div>
 
 <figure class="asb-figure asb-figure--cover">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大图片：并行方式的原创矢量概念图：从单卡 Transformer 的 Attention 和 FFN 到 TP、PP、DP、CP、EP、SP 切分轴，再到四张 GPU 的分布式执行"><img src="/diagrams/parallel-overview.svg" alt="并行方式的原创矢量概念图：从单卡 Transformer 的 Attention 和 FFN 到 TP、PP、DP、CP、EP、SP 切分轴，再到四张 GPU 的分布式执行" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大图片：并行方式的原创矢量概念图：从单卡 Transformer 的 Attention 和 FFN 到 TP、PP、DP、CP、EP、SP 切分轴，再到四张 GPU 的分布式执行"><img width="1100" height="420" src="/diagrams/parallel-overview.svg" alt="并行方式的原创矢量概念图：从单卡 Transformer 的 Attention 和 FFN 到 TP、PP、DP、CP、EP、SP 切分轴，再到四张 GPU 的分布式执行" /></button>
   <figcaption>从单卡计算到分布式并行的六种切分方式</figcaption>
 </figure>
 
@@ -58,7 +58,7 @@ lastUpdated: false
 | 每个 DP 副本的 Microbatch \(b\) | 2 |
 
 <figure class="asb-figure asb-figure--cover">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大图片：8 GPU DP × TP × PP 示例中的进程组与流水阶段"><img src="/diagrams/parallel-8gpu-layout.svg" alt="8 GPU DP × TP × PP 示例中的进程组与流水阶段" loading="lazy" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大图片：8 GPU DP × TP × PP 示例中的进程组与流水阶段"><img width="1120" height="540" src="/diagrams/parallel-8gpu-layout.svg" alt="8 GPU DP × TP × PP 示例中的进程组与流水阶段" loading="lazy" /></button>
   <figcaption>8 GPU 逻辑并行拓扑：两个 DP 副本，每个副本划分两个 PP Stage，每个 Stage 包含一个两卡 TP 组</figcaption>
 </figure>
 
@@ -69,7 +69,7 @@ lastUpdated: false
 ## 二　单卡 Transformer 的计算与张量布局
 
 <figure class="asb-figure asb-figure--source">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大图片：单卡 Transformer Attention 与 FFN 前向数据流"><img src="/images/parallel/figure-1.svg" alt="单卡 Transformer 的 Attention 与 FFN 前向计算流程" loading="lazy" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大图片：单卡 Transformer Attention 与 FFN 前向数据流"><img width="1080" height="430" src="/images/parallel/figure-1.svg" alt="单卡 Transformer 的 Attention 与 FFN 前向计算流程" loading="lazy" /></button>
   <figcaption>单卡 Transformer 的 Attention 与 FFN 计算流程</figcaption>
 </figure>
 
@@ -114,7 +114,7 @@ Attention 与 FFN 的典型 TP 实现都可以由 Column Parallel 和 Row Parall
 ### Attention Head 切分与输出归约
 
 <figure class="asb-figure asb-figure--source">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大图片：张量并行的 Attention Head 切分与部分和归约"><img src="/diagrams/tp-attention-heads.svg" alt="TP Attention 的 Head 切分和两个 GPU 的输出投影部分和归约矢量图" loading="lazy" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大图片：张量并行的 Attention Head 切分与部分和归约"><img width="1100" height="460" src="/diagrams/tp-attention-heads.svg" alt="TP Attention 的 Head 切分和两个 GPU 的输出投影部分和归约矢量图" loading="lazy" /></button>
   <figcaption>Tensor Parallelism：每卡处理部分 Attention Head，输出投影后归约部分和</figcaption>
 </figure>
 
@@ -162,7 +162,7 @@ $$
 
 
 <figure class="asb-figure">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大：张量并行切 Head 和上下文并行切 Token 的局部形状"><img src="/diagrams/tp-cp-shapes.svg" alt="张量并行切 Head 和上下文并行切 Token 的局部形状" loading="lazy" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大：张量并行切 Head 和上下文并行切 Token 的局部形状"><img width="960" height="410" src="/diagrams/tp-cp-shapes.svg" alt="张量并行切 Head 和上下文并行切 Token 的局部形状" loading="lazy" /></button>
   <figcaption>标准 MHA 中，TP 沿 Head 维分组，CP 沿序列维分段；每个 Head 的宽度 D_h 不变。</figcaption>
 </figure>
 
@@ -205,7 +205,7 @@ $$
 求和沿 key 维进行。分子和分母同乘 exp(−m)，结果相同，并能避免指数上溢。掩码位置的权重为 0。下面的 Online Softmax 把跨所有可见 key 的归一化改成逐块更新。
 
 <figure class="asb-figure asb-figure--source">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大图片：Online Softmax 的跨块归一化状态更新"><img src="/diagrams/online-softmax.svg" alt="Online Softmax 逐块遍历 KV Tile，并更新运行最大值、指数和与加权输出的原创矢量数据流图" loading="lazy" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大图片：Online Softmax 的跨块归一化状态更新"><img width="1120" height="470" src="/diagrams/online-softmax.svg" alt="Online Softmax 逐块遍历 KV Tile，并更新运行最大值、指数和与加权输出的原创矢量数据流图" loading="lazy" /></button>
   <figcaption>Online Softmax：逐块扫描 KV 并维护归一化状态</figcaption>
 </figure>
 
@@ -250,7 +250,7 @@ Q、K、V 按 tile 搬到片上，分数和概率就地消费，避免把完整 
 ### Ring Attention：K/V 分片轮转
 
 <figure class="asb-figure asb-figure--source">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大图片：四 GPU Ring Attention 的 K/V 分片轮转"><img src="/images/parallel/figure-5.svg" alt="四 GPU Ring Attention 中的 K/V 分片轮转" loading="lazy" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大图片：四 GPU Ring Attention 的 K/V 分片轮转"><img width="1080" height="430" src="/images/parallel/figure-5.svg" alt="四 GPU Ring Attention 中的 K/V 分片轮转" loading="lazy" /></button>
   <figcaption>Context Parallelism 中的 Ring Attention 数据交换</figcaption>
 </figure>
 
@@ -276,7 +276,7 @@ $$
 这使得 Attention 结果能够按树形结构逐层归约：设备不必传输完整的历史 K/V，只需交换与当前 Query 对应的归约统计量（具体实现还需计入 Query 的分发等开销）。归约时仍需处理因果掩码、数值稳定性和全掩码行等情况。
 
 <figure class="asb-figure asb-figure--cover">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大图片：Ring Attention 通过环形传递 KV 分片；Tree Attention 计算局部统计量后执行树形归约的原创矢量对比图"><img src="/diagrams/ring-vs-tree-attention.svg" alt="Ring Attention 通过环形传递 KV 分片；Tree Attention 计算局部统计量后执行树形归约的原创矢量对比图" loading="lazy" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大图片：Ring Attention 通过环形传递 KV 分片；Tree Attention 计算局部统计量后执行树形归约的原创矢量对比图"><img width="1120" height="450" src="/diagrams/ring-vs-tree-attention.svg" alt="Ring Attention 通过环形传递 KV 分片；Tree Attention 计算局部统计量后执行树形归约的原创矢量对比图" loading="lazy" /></button>
   <figcaption>Ring 与 Tree Attention 的通信思路对比</figcaption>
 </figure>
 
@@ -408,7 +408,7 @@ MLA（Multi-head Latent Attention）使用低秩潜变量压缩 KV。以 DeepSee
 推理服务还需要解决另一个独立问题：历史 K/V 怎样存放、查找、复用并迁移，而不是只考虑一次 Attention 如何在 GPU 之间计算。
 
 <figure class="asb-figure asb-figure--source">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大图片：PagedAttention 逻辑 KV 块到物理块的映射"><img src="/images/parallel/figure-4.svg" alt="PagedAttention 中逻辑 KV 块与物理存储块的映射" loading="lazy" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大图片：PagedAttention 逻辑 KV 块到物理块的映射"><img width="1080" height="430" src="/images/parallel/figure-4.svg" alt="PagedAttention 中逻辑 KV 块与物理存储块的映射" loading="lazy" /></button>
   <figcaption>PagedAttention 的 KV Cache 块映射</figcaption>
 </figure>
 

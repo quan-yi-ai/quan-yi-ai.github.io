@@ -25,7 +25,7 @@ lastUpdated: false
 **Prompt → Policy Rollout → Reward → 训练所需的 Logprobs / Mask → Advantage → Actor Update → 同步推理权重 → 下一批采样。**
 
 <figure class="asb-figure asb-figure--cover">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大 RL 后训练迭代数据链路"><img src="/diagrams/rl-posttraining-flow.svg" alt="RL 后训练中 Prompt、Rollout、Reward、Advantage、Update 数据路径" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大 RL 后训练迭代数据链路"><img width="960" height="570" src="/diagrams/rl-posttraining-flow.svg" alt="RL 后训练中 Prompt、Rollout、Reward、Advantage、Update 数据路径" /></button>
   <figcaption>无论采用何种具体策略优化算法，都需要明确各阶段输入输出与数据所有权。</figcaption>
 </figure>
 
@@ -84,7 +84,7 @@ A_i=\frac{R_i-\operatorname{mean}(R_1,\ldots,R_G)}
 
 
 <figure class="asb-figure">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大：PPO 与 GRPO 按同一逻辑步骤排列的流程对照"><img src="/images/figures/rl-posttraining-frameworks-01.png" alt="PPO 与 GRPO 按同一逻辑步骤排列的流程对照" loading="lazy" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大：PPO 与 GRPO 按同一逻辑步骤排列的流程对照"><img width="1890" height="1651" src="/images/figures/rl-posttraining-frameworks-01.png" alt="PPO 与 GRPO 按同一逻辑步骤排列的流程对照" loading="lazy" /></button>
   <figcaption>蓝色表示共享系统职责，橙色表示典型算法差异；虚线体现可选 Reference 路径与不同循环。</figcaption>
 </figure>
 
@@ -149,7 +149,7 @@ Agentic RL 则在普通文本 Rollout 上增加了工具调用、环境状态、
 ### PPO、GRPO 与离线 DPO 的流程对照
 
 <figure class="asb-figure">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大：在线 PPO GRPO 与离线 DPO 的训练流程对照"><img src="/images/figures/rl-posttraining-frameworks-03.png" alt="在线 PPO GRPO 与离线 DPO 的训练流程对照" loading="lazy" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大：在线 PPO GRPO 与离线 DPO 的训练流程对照"><img width="1852" height="1253" src="/images/figures/rl-posttraining-frameworks-03.png" alt="在线 PPO GRPO 与离线 DPO 的训练流程对照" loading="lazy" /></button>
   <figcaption>典型在线 RL 会生成新轨迹；离线 DPO 使用已有偏好对，在给定参考策略下优化偏好目标。</figcaption>
 </figure>
 
@@ -158,7 +158,7 @@ Agentic RL 则在普通文本 Rollout 上增加了工具调用、环境状态、
 ### 扩展到扩散模型：保留数据主干，改变优化目标
 
 <figure class="asb-figure">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大：FlowGRPO Flow-DPO DiffusionNFT 与 Diffusion-DPO 流程对照"><img src="/images/figures/rl-posttraining-frameworks-04.png" alt="FlowGRPO Flow-DPO DiffusionNFT 与 Diffusion-DPO 流程对照" loading="lazy" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大：FlowGRPO Flow-DPO DiffusionNFT 与 Diffusion-DPO 流程对照"><img width="2180" height="1227" src="/images/figures/rl-posttraining-frameworks-04.png" alt="FlowGRPO Flow-DPO DiffusionNFT 与 Diffusion-DPO 流程对照" loading="lazy" /></button>
   <figcaption>扩散模型后训练的概念对照：在线采样、奖励、比值或重构目标与离线偏好优化。图中名称 Flow-DPO 指该图的在线方法，不能与离线 Diffusion-DPO 混同。</figcaption>
 </figure>
 

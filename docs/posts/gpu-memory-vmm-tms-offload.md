@@ -34,7 +34,7 @@ print(x.untyped_storage().nbytes())
 
 
 <figure class="asb-figure">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大：Tensor Storage 虚拟地址和物理显存的对应关系"><img src="/diagrams/gpu-tensor-storage.svg" alt="Tensor Storage 虚拟地址和物理显存的对应关系" loading="lazy" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大：Tensor Storage 虚拟地址和物理显存的对应关系"><img width="960" height="560" src="/diagrams/gpu-tensor-storage.svg" alt="Tensor Storage 虚拟地址和物理显存的对应关系" loading="lazy" /></button>
   <figcaption>Tensor 元数据、共享 Storage、设备虚拟地址与物理分配应分层理解。</figcaption>
 </figure>
 
@@ -59,7 +59,7 @@ torch.cuda.empty_cache()
 CUDA 提供的 Virtual Memory Management API 允许应用显式管理虚拟地址区间、物理资源句柄、映射关系和访问权限。
 
 <figure class="asb-figure asb-figure--cover">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大 CUDA VMM 映射生命周期"><img src="/diagrams/gpu-vmm-mapping.svg" alt="CUDA VMM 从虚拟地址预留到物理映射与访问权限的关系" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大 CUDA VMM 映射生命周期"><img width="960" height="650" src="/diagrams/gpu-vmm-mapping.svg" alt="CUDA VMM 从虚拟地址预留到物理映射与访问权限的关系" /></button>
   <figcaption>虚拟地址预留、物理资源创建、映射和访问授权是不同的步骤。</figcaption>
 </figure>
 
@@ -82,7 +82,7 @@ CUDA 提供的 Virtual Memory Management API 允许应用显式管理虚拟地�
 [Torch Memory Saver（TMS）](https://github.com/fzyzcjy/torch_memory_saver) 是第三方项目，并不是 PyTorch 内置的标准接口。它通过受管理的分配路径和底层虚拟内存机制，支持在 Pause 时释放部分物理显存资源、在 Resume 时重新建立内存映射，并尽量维持地址稳定。
 
 <figure class="asb-figure asb-figure--cover">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大 TMS Pause Resume 资源路径"><img src="/diagrams/gpu-tms-pause.svg" alt="TMS 虚拟地址保留、暂停解除映射、恢复内容与物理显存的关系" loading="lazy" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大 TMS Pause Resume 资源路径"><img width="960" height="620" src="/diagrams/gpu-tms-pause.svg" alt="TMS 虚拟地址保留、暂停解除映射、恢复内容与物理显存的关系" loading="lazy" /></button>
   <figcaption>地址恢复与内容恢复必须分别讨论：Pause 不意味着原有 Tensor 数值已经被自动保存。</figcaption>
 </figure>
 
@@ -114,7 +114,7 @@ TMS 的部分接入方式使用 `LD_PRELOAD` 优先加载动态库，拦截受�
 
 
 <figure class="asb-figure">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大：缓存分配器和内存分配 Hook 的接入边界"><img src="/diagrams/gpu-allocation-hook.svg" alt="缓存分配器和内存分配 Hook 的接入边界" loading="lazy" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大：缓存分配器和内存分配 Hook 的接入边界"><img width="960" height="560" src="/diagrams/gpu-allocation-hook.svg" alt="缓存分配器和内存分配 Hook 的接入边界" loading="lazy" /></button>
   <figcaption>Preload 拦截支持的底层符号；自定义分配器在另一层接入，覆盖范围取决于模式。</figcaption>
 </figure>
 
@@ -135,7 +135,7 @@ TMS 的部分接入方式使用 `LD_PRELOAD` 优先加载动态库，拦截受�
 Relax 的 [Selective CPU Offload PR #85](https://github.com/redai-studio/Relax/pull/85) 提供了理解该问题的工程案例：不只在底层追踪哪些字节被分配，还尝试根据 Megatron 训练状态的语义，选择需要备份和可以重建的 Buffer。
 
 <figure class="asb-figure asb-figure--cover">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大 Selective CPU Offload 数据路径"><img src="/diagrams/gpu-selective-offload.svg" alt="Selective Offload 将必须保留的状态备份到 CPU，并释放可重建状态" loading="lazy" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大 Selective CPU Offload 数据路径"><img width="960" height="705" src="/diagrams/gpu-selective-offload.svg" alt="Selective Offload 将必须保留的状态备份到 CPU，并释放可重建状态" loading="lazy" /></button>
   <figcaption>选择性卸载强调“保存什么、丢弃什么、什么时候能重新分配”，而不只是让显存占用下降。</figcaption>
 </figure>
 

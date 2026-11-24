@@ -40,13 +40,13 @@ TransferQueue 解决的不只是“把 Tensor 从 A 传到 B”的问题。它�
 因此，系统需要明确三类职责：谁维护全局样本状态、谁决定哪个任务消费哪些样本、谁负责传输真实 Tensor。TransferQueue 正是在这些边界上提供统一的数据管理机制。
 
 <figure class="asb-figure asb-figure--cover">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大图片：Rollout、Reward 和 Trainer 使用 TransferQueue 交接样本字段"><img src="/diagrams/tq-figure-1.svg" alt="Rollout、Reward 和 Trainer 使用 TransferQueue 交接样本字段" loading="lazy" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大图片：Rollout、Reward 和 Trainer 使用 TransferQueue 交接样本字段"><img width="960" height="610" src="/diagrams/tq-figure-1.svg" alt="Rollout、Reward 和 Trainer 使用 TransferQueue 交接样本字段" loading="lazy" /></button>
   <figcaption>计算任务与数据系统解耦：生产者写入样本，消费者按字段就绪状态读取</figcaption>
 </figure>
 
 
 <figure class="asb-figure">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大：多 Rollout 和多 Update 的动态数据路由"><img src="/images/figures/transferqueue-01.png" alt="多 Rollout 和多 Update 的动态数据路由" loading="lazy" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大：多 Rollout 和多 Update 的动态数据路由"><img width="1407" height="1226" src="/images/figures/transferqueue-01.png" alt="多 Rollout 和多 Update 的动态数据路由" loading="lazy" /></button>
   <figcaption>TransferQueue 在生产端与消费端之间动态重组数据流。图中署名：知乎 @小波基；来源：<a href="https://zhuanlan.zhihu.com/p/1930244241625449814">TransferQueue 介绍</a>。</figcaption>
 </figure>
 
@@ -56,7 +56,7 @@ TransferQueue 将**控制面**与**数据面**分离。控制面由 Controller �
 
 
 <figure class="asb-figure">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大：TransferQueue 控制平面数据平面和训练推理角色"><img src="/images/figures/transferqueue-02.png" alt="TransferQueue 控制平面数据平面和训练推理角色" loading="lazy" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大：TransferQueue 控制平面数据平面和训练推理角色"><img width="886" height="542" src="/images/figures/transferqueue-02.png" alt="TransferQueue 控制平面数据平面和训练推理角色" loading="lazy" /></button>
   <figcaption>Actor、Reference、Reward、Rollout Controller 与 StorageUnit 的交互。图中虚线与实线区分控制与数据关系。来源：<a href="https://zhuanlan.zhihu.com/p/1930244241625449814">知乎 @小波基</a>。</figcaption>
 </figure>
 
@@ -66,13 +66,13 @@ TransferQueue 将**控制面**与**数据面**分离。控制面由 Controller �
 把一个 Global Batch 看成一张逻辑表：**行是样本索引，列是 Prompt、Response、Reward、Logprobs 等字段**。不同任务接力生产字段，Controller 维护相应状态；真实字段值存放在数据面，而不是把所有 Tensor 都塞进 Metadata。
 
 <figure class="asb-figure asb-figure--cover">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大图片：四个样本的字段就绪和消费状态矩阵"><img src="/diagrams/tq-sample-lifecycle.svg" alt="四个样本的字段就绪和消费状态矩阵" loading="lazy" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大图片：四个样本的字段就绪和消费状态矩阵"><img width="960" height="500" src="/diagrams/tq-sample-lifecycle.svg" alt="四个样本的字段就绪和消费状态矩阵" loading="lazy" /></button>
   <figcaption>按样本和字段组织的就绪状态示例（非运行时截图）</figcaption>
 </figure>
 
 
 <figure class="asb-figure">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大：StorageUnit 上按样本行字段列组织的并发读写"><img src="/images/figures/transferqueue-03.png" alt="StorageUnit 上按样本行字段列组织的并发读写" loading="lazy" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大：StorageUnit 上按样本行字段列组织的并发读写"><img width="1440" height="910" src="/images/figures/transferqueue-03.png" alt="StorageUnit 上按样本行字段列组织的并发读写" loading="lazy" /></button>
   <figcaption>字段分布到多个 StorageUnit，并允许不同阶段并发读写不同样本字段。来源：<a href="https://zhuanlan.zhihu.com/p/1930244241625449814">知乎 @小波基</a>。</figcaption>
 </figure>
 
@@ -120,7 +120,7 @@ if meta.size:
 如果尚未凑齐请求的 Batch，`fetch` 在一般情况下可能返回空 `BatchMeta`，等待后续生产者完成写入；并不是每次请求都会立即收到可训练的 Microbatch。不同 Sampler 还可能有缓存结果或可变大小 Batch 的行为。
 
 <figure class="asb-figure asb-figure--cover">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大图片：Producer、Controller、StorageManager 和 StorageUnit 的 PUT GET 时序图"><img src="/diagrams/tq-put-get-sequence.svg" alt="Producer、Controller、StorageManager 和 StorageUnit 的 PUT GET 时序图" loading="lazy" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大图片：Producer、Controller、StorageManager 和 StorageUnit 的 PUT GET 时序图"><img width="960" height="500" src="/diagrams/tq-put-get-sequence.svg" alt="Producer、Controller、StorageManager 和 StorageUnit 的 PUT GET 时序图" loading="lazy" /></button>
   <figcaption>先取 Metadata，再取 Payload；写入同样区分索引状态与实际字段的传输</figcaption>
 </figure>
 
@@ -129,7 +129,7 @@ if meta.size:
 假设一次 GET 请求的 Global Index 顺序是 `[12, 7, 4, 9]`。使用两个 SimpleStorageUnit 且按 `global_index % 2` 路由：SU0 接收 `[12, 4]`，SU1 接收 `[7, 9]`。数据可能先后从不同 Unit 返回，但消费者预期的 Batch 顺序仍是 `[12, 7, 4, 9]`。
 
 <figure class="asb-figure asb-figure--cover">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大图片：Global Index 通过取模路由至两个 StorageUnit 并按原始位置组装"><img src="/diagrams/tq-storage-routing.svg" alt="Global Index 通过取模路由至两个 StorageUnit 并按原始位置组装" loading="lazy" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大图片：Global Index 通过取模路由至两个 StorageUnit 并按原始位置组装"><img width="960" height="500" src="/diagrams/tq-storage-routing.svg" alt="Global Index 通过取模路由至两个 StorageUnit 并按原始位置组装" loading="lazy" /></button>
   <figcaption>示例使用两个 Unit，演示按索引路由和输出位置恢复；不是固定的物理集群拓扑</figcaption>
 </figure>
 
@@ -140,7 +140,7 @@ if meta.size:
 有了样本索引、字段就绪状态和按需读取机制，就可以让不同阶段的计算任务按自身进度推进，而不要求每次都由上游直接调用下游 RPC。
 
 <figure class="asb-figure asb-figure--cover">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大图片：从 Prompt 到 Rollout Reward Trainer 的 DataFlow"><img src="/diagrams/tq-figure-4.svg" alt="从 Prompt 到 Rollout Reward Trainer 的 DataFlow" loading="lazy" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大图片：从 Prompt 到 Rollout Reward Trainer 的 DataFlow"><img width="960" height="710" src="/diagrams/tq-figure-4.svg" alt="从 Prompt 到 Rollout Reward Trainer 的 DataFlow" loading="lazy" /></button>
   <figcaption>字段就绪驱动任务消费，但 Iteration 边界仍由上层管理</figcaption>
 </figure>
 
@@ -155,7 +155,7 @@ if meta.size:
 
 
 <figure class="asb-figure">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大：传统工作流与 TransferQueue 流式 DataLoader 的重叠"><img src="/images/figures/transferqueue-05.png" alt="传统工作流与 TransferQueue 流式 DataLoader 的重叠" loading="lazy" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大：传统工作流与 TransferQueue 流式 DataLoader 的重叠"><img width="916" height="558" src="/images/figures/transferqueue-05.png" alt="传统工作流与 TransferQueue 流式 DataLoader 的重叠" loading="lazy" /></button>
   <figcaption>按字段就绪推进不同阶段，提供流水线重叠机会。横轴与箭头为机制示意，图中的 End-to-End Benefit 不是本文设备上的实测值。来源：<a href="https://zhuanlan.zhihu.com/p/1933259599953232589">知乎 @小波基 · 算法编排</a>。</figcaption>
 </figure>
 
@@ -174,7 +174,7 @@ Response 长度不同会造成每个 DP Worker 的 Token 工作量不同。合�
 完成 Batch 选择之后，下一问题是**真实 Tensor 存放在哪里、怎么跨节点交付**。StorageManager 把上层请求与不同 Backend 分开，数据面并不是 Controller 内部的一个普通 Python List。
 
 <figure class="asb-figure asb-figure--cover">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大图片：StorageManager 对多个 Backend 暴露统一数据操作"><img src="/diagrams/tq-figure-7.svg" alt="StorageManager 对多个 Backend 暴露统一数据操作" loading="lazy" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大图片：StorageManager 对多个 Backend 暴露统一数据操作"><img width="960" height="480" src="/diagrams/tq-figure-7.svg" alt="StorageManager 对多个 Backend 暴露统一数据操作" loading="lazy" /></button>
   <figcaption>相同逻辑数据请求可以交由不同后端处理，但它们的内存与网络路径不同</figcaption>
 </figure>
 
@@ -214,7 +214,7 @@ backend:
 
 
 <figure class="asb-figure">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大：SimpleStorage 与 MooncakeStore 的存储和传输路径"><img src="/diagrams/tq-backend-paths.svg" alt="SimpleStorage 与 MooncakeStore 的存储和传输路径" loading="lazy" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大：SimpleStorage 与 MooncakeStore 的存储和传输路径"><img width="960" height="610" src="/diagrams/tq-backend-paths.svg" alt="SimpleStorage 与 MooncakeStore 的存储和传输路径" loading="lazy" /></button>
   <figcaption>基础 CPU 内存路径与可配置的分层 KV / TCP / RDMA 路径；实际拷贝与 Staging 由后端、字段和配置决定。</figcaption>
 </figure>
 
@@ -238,7 +238,7 @@ backend:
 分析跨节点数据交付效率，需要分别明确四个问题：**源数据位于哪块内存、有没有中间 Buffer、网络使用哪种协议、最终 Tensor 在哪块设备上供训练消费。**
 
 <figure class="asb-figure asb-figure--cover">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大图片：Tensor 从生产端到网络、接收端的可能内存路径"><img src="/diagrams/tq-memory-path.svg" alt="Tensor 从生产端到网络、接收端的可能内存路径" loading="lazy" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大图片：Tensor 从生产端到网络、接收端的可能内存路径"><img width="960" height="500" src="/diagrams/tq-memory-path.svg" alt="Tensor 从生产端到网络、接收端的可能内存路径" loading="lazy" /></button>
   <figcaption>启用 RDMA 不等于全流程没有 CPU Staging、布局转换和额外拷贝</figcaption>
 </figure>
 

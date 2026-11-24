@@ -25,7 +25,7 @@ RLHF 常使用人类偏好或奖励模型来指导策略更新；RLVR 强调可�
 Agentic RL 更突出的是**策略与外部环境的交互过程**：模型动作影响未来观察，轨迹长度和执行耗时随环境变化。奖励既可能来自最终任务成功，也可能包含工具调用成本、阶段性检查和其他约束。
 
 <figure class="asb-figure asb-figure--cover">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大 Agentic RL 多轮工具交互图"><img src="/diagrams/agentic-tool-loop.svg" alt="Agentic RL Prompt Policy Tool Environment Trajectory Reward 数据流" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大 Agentic RL 多轮工具交互图"><img width="960" height="605" src="/diagrams/agentic-tool-loop.svg" alt="Agentic RL Prompt Policy Tool Environment Trajectory Reward 数据流" /></button>
   <figcaption>Tool Call 形成新的环境观察，再次改变模型输入；轨迹由多个 Turn 组成。</figcaption>
 </figure>
 
@@ -73,7 +73,7 @@ Agentic RL 更突出的是**策略与外部环境的交互过程**：模型动�
 严格 FIFO 会被队头的慢轨迹阻塞；完全贪心地取所有已完成轨迹，则容易让早期训练批次偏向较短、较容易的任务。[MiniMax-M2 技术报告 §6.2.4](https://arxiv.org/html/2605.26494v2#S6.SS2.SSS4)提出 Windowed FIFO：只在生成队列的一个滑动窗口内取已完成轨迹，窗口外的轨迹即使完成也暂不消费；最老的未消费轨迹推进后，窗口才能向右移动。
 
 <figure class="asb-figure">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大：严格 FIFO 贪心调度和 Windowed FIFO 的轨迹消费对比"><img src="/images/figures/agentic-rl-infrastructure-01.png" alt="严格 FIFO 贪心调度和 Windowed FIFO 的轨迹消费对比" loading="lazy" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大：严格 FIFO 贪心调度和 Windowed FIFO 的轨迹消费对比"><img width="1080" height="610" src="/images/figures/agentic-rl-infrastructure-01.png" alt="严格 FIFO 贪心调度和 Windowed FIFO 的轨迹消费对比" loading="lazy" /></button>
   <figcaption>窗口内可乱序消费，窗口外仍受顺序边界约束。图解署名：青稞 AI；机制来源：<a href="https://arxiv.org/html/2605.26494v2#S6.SS2.SSS4">MiniMax-M2 / Forge</a>。</figcaption>
 </figure>
 

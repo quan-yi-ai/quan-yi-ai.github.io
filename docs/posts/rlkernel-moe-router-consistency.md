@@ -52,7 +52,7 @@ p_e=\frac{\exp(z_e)}{\sum_j\exp(z_j)}
 ## 三、由浅入深的四层验证
 
 <figure class="asb-figure asb-figure--cover">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大 MoE Router 训推验证分层图"><img src="/diagrams/rlkernel-verification.svg" alt="确定性重放、Batch 不变性、CPU 参考实现和跨引擎一致性四层验证" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大 MoE Router 训推验证分层图"><img width="960" height="580" src="/diagrams/rlkernel-verification.svg" alt="确定性重放、Batch 不变性、CPU 参考实现和跨引擎一致性四层验证" /></button>
   <figcaption>从单实现稳定性开始，逐步增加对输入布局、参考语义和跨引擎环境的约束。</figcaption>
 </figure>
 

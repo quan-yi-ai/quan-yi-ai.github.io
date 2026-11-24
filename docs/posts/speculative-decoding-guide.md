@@ -23,7 +23,7 @@ lastUpdated: false
 设目标模型的下一个 Token 分布为 $p(\cdot)$，轻量草稿模型为 $q(\cdot)$。Draft 阶段先按 $q$ 提出若干候选 Token；Target 阶段基于这些候选的前缀并行计算各位置的目标模型分布；Verification 阶段决定哪些候选可以接受，在哪里需要重新采样。
 
 <figure class="asb-figure asb-figure--cover">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大投机解码 Draft Verify 流程"><img src="/diagrams/speculative-verify.svg" alt="轻量 Draft 提议 Token，目标模型并行验证并决定接受或拒绝" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大投机解码 Draft Verify 流程"><img width="960" height="600" src="/diagrams/speculative-verify.svg" alt="轻量 Draft 提议 Token，目标模型并行验证并决定接受或拒绝" /></button>
   <figcaption>草稿 Token 是候选，不是直接交付给用户的输出；验证规则决定最终概率语义。</figcaption>
 </figure>
 
@@ -51,7 +51,7 @@ $
 
 
 <figure class="asb-figure">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大：接受拒绝采样保持目标分布的手写推导"><img src="/images/figures/speculative-decoding-guide-01.jpg" alt="接受拒绝采样保持目标分布的手写推导" loading="lazy" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大：接受拒绝采样保持目标分布的手写推导"><img width="1536" height="2048" src="/images/figures/speculative-decoding-guide-01.jpg" alt="接受拒绝采样保持目标分布的手写推导" loading="lazy" /></button>
   <figcaption>单 Token 的接受质量为 min(p(t), q(t))，拒绝后的校正路径补回 max(0, p(t)−q(t))。</figcaption>
 </figure>
 
@@ -78,7 +78,7 @@ $
 若单 token 普通解码耗时为 T_base，则每 token 平均耗时约为 (T_d+T_v+T_overhead)/A，加速比约为 A T_base/(T_d+T_v+T_overhead)。例如基线为 10 ms/token，一轮草稿、验证和管理共耗时 15 ms、提交 3 个 token，则约为 5 ms/token。这是成本模型示例。
 
 <figure class="asb-figure asb-figure--cover">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大投机解码性能取舍图"><img src="/diagrams/speculative-tradeoff.svg" alt="Draft 长度、接受长度、目标验证成本与实际加速收益关系" loading="lazy" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大投机解码性能取舍图"><img width="960" height="620" src="/diagrams/speculative-tradeoff.svg" alt="Draft 长度、接受长度、目标验证成本与实际加速收益关系" loading="lazy" /></button>
   <figcaption>Draft 成本、接受长度与目标验证成本共同决定收益，不能只根据接受率比较方法。</figcaption>
 </figure>
 
@@ -116,7 +116,7 @@ Medusa 在共享隐藏状态上增加多个未来位置预测头。各头共享�
 
 
 <figure class="asb-figure">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大：Medusa 共享主干隐藏状态和多个预测头"><img src="/images/figures/speculative-decoding-guide-02.png" alt="Medusa 共享主干隐藏状态和多个预测头" loading="lazy" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大：Medusa 共享主干隐藏状态和多个预测头"><img width="748" height="616" src="/images/figures/speculative-decoding-guide-02.png" alt="Medusa 共享主干隐藏状态和多个预测头" loading="lazy" /></button>
   <figcaption>Medusa 多头预测与候选组合。来源：<a href="https://github.com/FasterDecoding/Medusa">Medusa 项目</a>。</figcaption>
 </figure>
 
@@ -131,7 +131,7 @@ $$
 
 
 <figure class="asb-figure">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大：DeepSeek-V3 MTP 模块的深度与 Token 索引"><img src="/diagrams/speculative-mtp-depth.svg" alt="DeepSeek-V3 MTP 模块的深度与 Token 索引" loading="lazy" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大：DeepSeek-V3 MTP 模块的深度与 Token 索引"><img width="960" height="590" src="/diagrams/speculative-mtp-depth.svg" alt="DeepSeek-V3 MTP 模块的深度与 Token 索引" loading="lazy" /></button>
   <figcaption>固定位置 i，额外预测深度 k 将目标推进到 t_(i+k+1)。依据 <a href="https://arxiv.org/html/2412.19437v2#S2.SS2">DeepSeek-V3 §2.2</a>。</figcaption>
 </figure>
 
@@ -145,14 +145,14 @@ $$
 
 
 <figure class="asb-figure">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大：EAGLE 论文比较四种草稿生成机制"><img src="/images/figures/speculative-decoding-guide-04.png" alt="EAGLE 论文比较四种草稿生成机制" loading="lazy" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大：EAGLE 论文比较四种草稿生成机制"><img width="1624" height="734" src="/images/figures/speculative-decoding-guide-04.png" alt="EAGLE 论文比较四种草稿生成机制" loading="lazy" /></button>
   <figcaption>Speculative Sampling、Lookahead、Medusa 与原始 EAGLE 的机制对照。图中附带的 Lookahead 注释应结合前文的 Jacobi 迭代理解；它仍运行目标网络。来源：<a href="https://arxiv.org/html/2401.15077v3#S3">EAGLE 原论文</a>。</figcaption>
 </figure>
 
 以已确认前缀“I love”为例：目标模型已有末尾特征并采样出 cats，EAGLE 将 cats 的嵌入与上一位置特征对齐，预测 cats 所在位置的特征，再提出 eat。条件 Token 与特征错开一步，才能把实际采样分支的信息传给草稿器。
 
 <figure class="asb-figure">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大：EAGLE 偏移 Token 与预测特征的对应关系"><img src="/diagrams/speculative-eagle-shift.svg" alt="EAGLE 偏移 Token 与预测特征的对应关系" loading="lazy" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大：EAGLE 偏移 Token 与预测特征的对应关系"><img width="960" height="600" src="/diagrams/speculative-eagle-shift.svg" alt="EAGLE 偏移 Token 与预测特征的对应关系" loading="lazy" /></button>
   <figcaption>原始 EAGLE 的偏移条件与两步草稿示例；一条分支只展示索引关系，实际实现可生成树形候选。</figcaption>
 </figure>
 
@@ -164,7 +164,7 @@ $$
 
 
 <figure class="asb-figure">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大：DSpark 并行块串行修正与前缀调度"><img src="/images/figures/speculative-decoding-guide-06.png" alt="DSpark 并行块串行修正与前缀调度" loading="lazy" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大：DSpark 并行块串行修正与前缀调度"><img width="1624" height="1172" src="/images/figures/speculative-decoding-guide-06.png" alt="DSpark 并行块串行修正与前缀调度" loading="lazy" /></button>
   <figcaption>并行块提供初始 Logits，轻量顺序修正建立位置依赖，调度器选择送入目标模型的候选前缀。来源：<a href="https://docs.vllm.ai/projects/speculators/en/latest/user_guide/algorithms/dspark/">DSpark / Speculators</a>。</figcaption>
 </figure>
 

@@ -57,7 +57,7 @@ print(ray.get(counter.inc.remote()))  # 2
 Actor 通过远程方法操作自己的状态，适合模型 Worker、持续运行的服务或参数状态。**状态持续存在不等于每个方法都可以并发执行**：普通 Actor、异步 Actor 和并发组的执行语义不一样。
 
 <figure class="asb-figure asb-figure--cover">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大 Ray Task Actor 生命周期图"><img src="/diagrams/ray-task-actor.svg" alt="Ray Task 一次执行与 Actor 有状态进程对比" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大 Ray Task Actor 生命周期图"><img width="960" height="495" src="/diagrams/ray-task-actor.svg" alt="Ray Task 一次执行与 Actor 有状态进程对比" /></button>
   <figcaption>Task 与 Actor：一次性远程执行与持续维护状态的远程进程。</figcaption>
 </figure>
 
@@ -80,7 +80,7 @@ print(ray.get(ref_b))  # 6
 顶层传入的 `ObjectRef` 可以建立执行依赖，消费者无需先在 Driver 上获取生产者的数据。Ray 会在依赖就绪后安排执行。在需要逐步获取完成结果时，`ray.wait(refs, num_returns=1)` 返回就绪与未就绪的 **引用列表**，不是直接返回数据对象。
 
 <figure class="asb-figure asb-figure--cover">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大 Ray ObjectRef 数据依赖图"><img src="/diagrams/ray-object-dag.svg" alt="Ray 的任务数据依赖和 Object Store" loading="lazy" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大 Ray ObjectRef 数据依赖图"><img width="960" height="495" src="/diagrams/ray-object-dag.svg" alt="Ray 的任务数据依赖和 Object Store" loading="lazy" /></button>
   <figcaption>传递 ObjectRef 描述依赖，真正的对象值可在其他 Worker 或节点上。</figcaption>
 </figure>
 
@@ -106,7 +106,7 @@ print(ray.get(ref_b))  # 6
 | Object Store | 缓存和共享部分 Ray 对象 | GCS 元数据服务 |
 
 <figure class="asb-figure asb-figure--cover">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大 Ray GCS Raylet Object Store 架构图"><img src="/diagrams/ray-cluster-architecture.svg" alt="Ray 集群控制面、Raylet、Worker 与对象存储的关系" loading="lazy" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大 Ray GCS Raylet Object Store 架构图"><img width="960" height="495" src="/diagrams/ray-cluster-architecture.svg" alt="Ray 集群控制面、Raylet、Worker 与对象存储的关系" loading="lazy" /></button>
   <figcaption>控制元数据、任务调度与实际对象传输属于不同层面。</figcaption>
 </figure>
 
@@ -124,19 +124,19 @@ Ray 对资源的分配和执行地点的决定，不等于它同时负责业务�
 早期 Ray 资料常将架构分为应用层（Driver、Worker、Actor）与系统层（调度、对象存储、控制元数据）。其中“Local Scheduler → Global Scheduler”的两级调度图，描述的是早期设计；不能将它直接作为当前 Ray 每次提交任务的执行路径。
 
 <figure class="asb-figure">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大：早期 Ray 应用层系统层和全局控制存储架构"><img src="/images/figures/ray-distributed-framework-03.png" alt="早期 Ray 应用层系统层和全局控制存储架构" loading="lazy" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大：早期 Ray 应用层系统层和全局控制存储架构"><img width="807" height="418" src="/images/figures/ray-distributed-framework-03.png" alt="早期 Ray 应用层系统层和全局控制存储架构" loading="lazy" /></button>
   <figcaption>早期架构中的 Global Scheduler、Local Scheduler、Object Store 与 GCS。图中署名：CSDN @zhaojiew10。</figcaption>
 </figure>
 
 <figure class="asb-figure">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大：早期 Ray 任务提交调度与负载信息传播"><img src="/images/figures/ray-distributed-framework-04.png" alt="早期 Ray 任务提交调度与负载信息传播" loading="lazy" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大：早期 Ray 任务提交调度与负载信息传播"><img width="961" height="446" src="/images/figures/ray-distributed-framework-04.png" alt="早期 Ray 任务提交调度与负载信息传播" loading="lazy" /></button>
   <figcaption>黑色为任务提交、蓝色为调度、红色为负载信息；属于早期两级调度模型。图中署名：CSDN @zhaojiew10。</figcaption>
 </figure>
 
 下面以 a 在 N1、b 在 N2 为例，展示远程加法涉及的任务放置、依赖对象定位、跨节点传输和结果返回。图中的全局调度及 GCS 对象表细节同样属于早期模型；现代实现应按 Raylet 调度、对象所有权与当前对象传输协议阅读。
 
 <figure class="asb-figure">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大：早期 Ray 跨节点 add remote 和 ray get 示例"><img src="/images/figures/ray-distributed-framework-05.png" alt="早期 Ray 跨节点 add remote 和 ray get 示例" loading="lazy" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大：早期 Ray 跨节点 add remote 和 ray get 示例"><img width="1243" height="577" src="/images/figures/ray-distributed-framework-05.png" alt="早期 Ray 跨节点 add remote 和 ray get 示例" loading="lazy" /></button>
   <figcaption>远程计算还涉及数据依赖与对象传输。图中署名：CSDN @zhaojiew10；当前调度机制参见 <a href="https://docs.ray.io/en/latest/ray-core/scheduling/index.html">Ray Scheduling</a>。</figcaption>
 </figure>
 
@@ -159,7 +159,7 @@ GCS 主要管理集群级控制信息，而非保存全部对象数据或提供�
 **Ray 管理 Worker 的分布式创建与资源放置；vLLM 负责模型加载、执行引擎、TP/PP 策略和所需 GPU 通信的初始化。** GCS 并不参与执行模型的 NCCL AllReduce。
 
 <figure class="asb-figure asb-figure--cover">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大 Ray vLLM 资源管理示意"><img src="/diagrams/ray-vllm-boundary.svg" alt="Ray 负责 GPU Worker 放置，vLLM 负责模型执行和 NCCL 通信" loading="lazy" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大 Ray vLLM 资源管理示意"><img width="960" height="495" src="/diagrams/ray-vllm-boundary.svg" alt="Ray 负责 GPU Worker 放置，vLLM 负责模型执行和 NCCL 通信" loading="lazy" /></button>
   <figcaption>Ray 解决 Worker 放在哪里，vLLM 解决 GPU Worker 如何协作计算。</figcaption>
 </figure>
 

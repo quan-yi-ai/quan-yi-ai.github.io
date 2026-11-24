@@ -26,14 +26,14 @@ lastUpdated: false
 MiniCPM-o 4.5 的模型设计以 Omni-Flow 将音视频输入、语言表示和语音输出放在共享时间轴上。多模态 Encoder 持续处理输入，语言主干结合视听表示和历史状态产生文本及控制信息，再由交错式语音解码与流式 Flow Matching Decoder 恢复音频。这一模型层面的全双工结构，需要与下文的服务阶段拆分分别理解。
 
 <figure class="asb-figure">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大：MiniCPM-o 4.5 Omni-Flow 官方全模态流式架构"><img src="/images/figures/minicpmo-45-omni-inference-01.png" alt="MiniCPM-o 4.5 Omni-Flow 官方全模态流式架构" loading="lazy" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大：MiniCPM-o 4.5 Omni-Flow 官方全模态流式架构"><img width="701" height="510" src="/images/figures/minicpmo-45-omni-inference-01.png" alt="MiniCPM-o 4.5 Omni-Flow 官方全模态流式架构" loading="lazy" /></button>
   <figcaption>Omni-Flow 的编码器、全双工语言主干、交错语音解码与流式波形恢复。来源：<a href="https://openbmb.cn/en/model/minicpm-o-4-5">OpenBMB / MiniCPM-o 4.5</a>。</figcaption>
 </figure>
 
 TDM 用时间分组把并行到来的模态流组织为主干可消费的序列。官方说明中的主动交互判断频率为 1 Hz；这不能解释成所有视频、音频的编码与输出都只以一秒为粒度。输入切片、主动发言判断和音频 Chunk 的粒度承担不同职责。
 
 <figure class="asb-figure">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大：MiniCPM-o TDM 输入主动发言判断和流式输出"><img src="/diagrams/minicpm-tdm.svg" alt="MiniCPM-o TDM 输入主动发言判断和流式输出" loading="lazy" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大：MiniCPM-o TDM 输入主动发言判断和流式输出"><img width="960" height="600" src="/diagrams/minicpm-tdm.svg" alt="MiniCPM-o TDM 输入主动发言判断和流式输出" loading="lazy" /></button>
   <figcaption>共享时间轴允许模型一边说话一边继续接收输入。依据 <a href="https://openbmb.cn/en/model/minicpm-o-4-5">官方模型说明</a>。</figcaption>
 </figure>
 
@@ -48,7 +48,7 @@ TDM 用时间分组把并行到来的模态流组织为主干可消费的序列�
 | vLLM-Ascend | Ascend NPU 硬件平台、后端算子与执行环境适配 | 不自动定义 MiniCPM-o 的音频生成算法 |
 
 <figure class="asb-figure asb-figure--cover">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大多模态推理软件栈"><img src="/diagrams/minicpm-stack.svg" alt="vLLM、vLLM-Omni 与 vLLM-Ascend 的功能边界" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大多模态推理软件栈"><img width="960" height="585" src="/diagrams/minicpm-stack.svg" alt="vLLM、vLLM-Omni 与 vLLM-Ascend 的功能边界" /></button>
   <figcaption>模型 Pipeline、通用推理运行时与硬件后端是三个需要分别分析的层次。</figcaption>
 </figure>
 
@@ -63,7 +63,7 @@ TDM 用时间分组把并行到来的模态流组织为主干可消费的序列�
 3. **Code2Wav（Stage 2）**：将音频 Codec 表示转换为最终波形，包含对应的声码器与重建链路。
 
 <figure class="asb-figure asb-figure--cover">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大 MiniCPM-o 4.5 三阶段流程"><img src="/diagrams/minicpm-three-stage.svg" alt="MiniCPM-o 4.5 Thinker Talker Code2Wav 三阶段推理图" loading="lazy" /></button>
+  <button class="asb-zoom-trigger" type="button" aria-label="放大 MiniCPM-o 4.5 三阶段流程"><img width="960" height="600" src="/diagrams/minicpm-three-stage.svg" alt="MiniCPM-o 4.5 Thinker Talker Code2Wav 三阶段推理图" loading="lazy" /></button>
   <figcaption>语言理解与文本生成、音频 Token 生成、波形恢复是不同的计算阶段。</figcaption>
 </figure>
 
