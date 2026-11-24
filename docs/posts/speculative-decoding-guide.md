@@ -20,7 +20,7 @@ lastUpdated: false
 
 ## 一、草稿与验证：加速的基本结构
 
-设目标模型的下一个 Token 分布为 \(p(\cdot)\)，轻量草稿模型为 \(q(\cdot)\)。Draft 阶段先按 \(q\) 提出若干候选 Token；Target 阶段基于这些候选的前缀并行计算各位置的目标模型分布；Verification 阶段决定哪些候选可以接受，在哪里需要重新采样。
+设目标模型的下一个 Token 分布为 $p(\cdot)$，轻量草稿模型为 $q(\cdot)$。Draft 阶段先按 $q$ 提出若干候选 Token；Target 阶段基于这些候选的前缀并行计算各位置的目标模型分布；Verification 阶段决定哪些候选可以接受，在哪里需要重新采样。
 
 <figure class="asb-figure asb-figure--cover">
   <button class="asb-zoom-trigger" type="button" aria-label="放大投机解码 Draft Verify 流程"><img src="/diagrams/speculative-verify.svg" alt="轻量 Draft 提议 Token，目标模型并行验证并决定接受或拒绝" /></button>
@@ -31,19 +31,27 @@ lastUpdated: false
 
 ## 二、无损性：为什么 Draft 分布不同也能保持目标分布？
 
-以标准随机采样的一个候选 Token \(x\sim q\) 为例，经典 Speculative Sampling 会以
+以标准随机采样的一个候选 Token $x\sim q$ 为例，经典 Speculative Sampling 会以
 
-\[
+
+$
 a(x)=\min\left(1,\frac{p(x)}{q(x)}\right)
-\]
+$
+
 
 的概率接受候选。当拒绝时，从适当归一化的剩余概率质量中重新采样：
 
-\[
-r(x)\propto\max(p(x)-q(x),0)
-\]
 
-在满足相应数学假设和实现语义时，这一接受-拒绝规则使最终 Token 分布保持为目标分布 \(p\)，而不是 Draft 分布 \(q\)。
+$
+r(x)\propto\max(p(x)-q(x),0)
+$
+
+
+接受路径为 token x 提供的概率质量是 min(p(x),q(x))；拒绝后的校正补回剩余质量。两者相加等于 p(x)。这个结论针对保持分布的验证算法；仅仅并行计算目标模型的分数，还不足以证明无损。
+
+多 token 验证沿候选前缀依次决定接受情况：首个拒绝位置输出校正 token，后续草稿作废；全部候选被接受时，可以再从目标分布产生一个额外 token。验证模型虽然同时计算了多个位置，但较后位置的分数以对应草稿前缀为条件，所以不能跳过中间拒绝的位置继续提交。
+
+保持分布也不要求在相同随机种子下逐 token 输出同一序列，因为随机数的消费顺序可能变化。Greedy 对齐与随机采样的分布保持应分别验证。
 
 这个结论有几个前提：目标与草稿分布使用兼容的 Token / Vocabulary 语义，验证时能取得相应的概率信息，并按照正确的剩余质量分布采样。不能将简单的 “Draft 与 Target Argmax 相同就接受，否则替换” 直接当作任意随机采样配置下的无损算法。
 
@@ -51,13 +59,17 @@ r(x)\propto\max(p(x)-q(x),0)
 
 ## 三、性能模型：为什么越长的 Draft 不一定越快？
 
-假设一次 Draft 提议 \(\gamma\) 个 Token，平均最终接受的有效 Token 数为 \(A\)，草稿成本为 \(T_d\)，目标验证成本为 \(T_v\)。可以用一个极简模型分析：
+假设一次 Draft 提议 $\gamma$ 个 Token，每轮平均最终提交的 Token 数为 $A$，草稿成本为 $T_d$，目标验证成本为 $T_v$。可以用一个极简模型分析：
 
-\[
+
+$
 \text{Effective Throughput}\approx\frac{A}{T_d+T_v+T_{\mathrm{overhead}}}
-\]
+$
 
-这里 \(A\) 应按照实现中实际确认的 Token 数计算，可能包括拒绝后的校正采样或额外目标 Token，因此不能不加说明地设为 \(\gamma\)。
+
+这里 A 包括已接受草稿，以及拒绝后的校正 token 或全接受时的额外目标 token；它与“接受了几个草稿”是两个统计口径。在不提前结束且每轮生成额外 token 的标准链式算法中，一轮提交量最多为 gamma+1。
+
+若单 token 普通解码耗时为 T_base，则每 token 平均耗时约为 (T_d+T_v+T_overhead)/A，加速比约为 A T_base/(T_d+T_v+T_overhead)。例如基线为 10 ms/token，一轮草稿、验证和管理共耗时 15 ms、提交 3 个 token，则约为 5 ms/token。这是成本模型示例。
 
 <figure class="asb-figure asb-figure--cover">
   <button class="asb-zoom-trigger" type="button" aria-label="放大投机解码性能取舍图"><img src="/diagrams/speculative-tradeoff.svg" alt="Draft 长度、接受长度、目标验证成本与实际加速收益关系" loading="lazy" /></button>
@@ -86,21 +98,38 @@ r(x)\propto\max(p(x)-q(x),0)
 
 当模型上下文中存在较强的重复片段时，可以复用已经出现过的后续 Token 作为候选。这类方法通常实现成本较低，但对于全新内容或低重复性任务，能够接受的候选长度可能有限。
 
-### Medusa 与 MTP：预测未来位置的 Token
+### Lookahead：Jacobi 迭代与候选池
 
-多头/多 Token 预测通过模型自身或扩展模块同时产生未来位置的候选。它们减少了独立 Draft Model 的部署负担，但候选之间的依赖与目标模型验证仍需要正确处理。
+[Lookahead Decoding](https://arxiv.org/abs/2402.02057)使用目标模型的并行迭代轨迹收集 n-gram，再验证候选。它不需要另一个草稿网络，但仍需神经网络计算；与直接从已有文本检索 n-gram 的路径不同。
 
-### EAGLE：条件依赖与草稿质量
+### Medusa：共享上下文，多头预测
 
-EAGLE 系列通过额外的轻量模块生成未来预测，在保持目标模型主干不变的条件下提高候选质量。其效果不仅取决于 Draft 的单 Token Accuracy，还与候选路径构造、树形验证和推理 Kernel 实现有关。
+Medusa 在共享隐藏状态上增加多个未来位置预测头。各头共享上下文，但预测较远位置时没有像自回归草稿那样显式消费刚采样的前一候选。例如上下文允许“of course”或“no problem”时，独立位置预测可能组合出不协调的续写。
 
-### DFlash / DSpark：并行起草与依赖修正
+候选按选定树形组织，而不必穷举全部笛卡尔积。Tree Attention 让每个节点只读取自己的祖先；验证后提交满足规则的连续前缀。Medusa 的 typical acceptance 属于另一种接受策略，生成质量相近与严格保持随机采样分布需要分别讨论。参见[Medusa 论文](https://arxiv.org/abs/2401.10774)。
 
-DFlash 类方案尝试一次并行产生一个候选块，减少草稿侧串行 Forward 的次数；但块内后续位置若无法充分依赖前序 Token，接受率可能下降。
+### MTP：把前一预测深度的表示接入下一深度
 
-DSpark 在此类并行 Draft 骨架上增加 Markov 风格的依赖修正和用于选择验证预算的置信度信息。对应的公开实现可参考 [Speculators DSpark 文档](https://docs.vllm.ai/projects/speculators/en/latest/user_guide/algorithms/dspark/)。
+MTP 是多 token 预测这一类目标与结构的统称。以 [DeepSeek-V3](https://arxiv.org/html/2412.19437v2#S2.SS2)为例，主干位置 i 的表示预测 t_(i+1)，第 k 个额外模块组合上一深度表示和 t_(i+k) 的嵌入，预测 t_(i+k+1)：
 
-这条演进思路并不意味着“串行 Draft 已经被取代”。最优选择仍由 Draft Cost、Target Verification Cost 与请求负载决定。
+$$
+z_i^k=M_k[\operatorname{RMSNorm}(h_i^{k-1});\operatorname{RMSNorm}(\operatorname{Emb}(t_{i+k}))],
+\qquad h^k=\operatorname{TRM}_k(z^k).
+$$
+
+嵌入与输出头和主模型共享。训练使用真实序列，起草时使用候选，因此可能存在分布偏移；影响大小要结合训练方法与实际接受长度衡量。较长草稿还受模块容量、顺序执行成本和验证预算制约，不存在通用的固定长度上限。
+
+### EAGLE：带 token 条件的特征预测
+
+原始 [EAGLE](https://arxiv.org/abs/2401.15077)通过轻量模块预测目标模型特征，并结合向前错开一步的 token 信息缓解特征预测的不确定性。描述输入层和 decoder 层时需要限定到具体版本；后续版本对特征选择、训练和候选构造有变化。
+
+它的取舍是以轻量的顺序草稿计算换取更好的条件依赖。更长候选需要更多草稿工作，但延迟还受树形结构、批处理和硬件影响。
+
+### DFlash / DSpark：并行主干与轻量位置依赖
+
+[DFlash](https://docs.vllm.ai/projects/speculators/en/latest/user_guide/algorithms/dflash/)以目标隐藏状态和 mask 位置为条件，一次草稿前向预测候选块。草稿器内部允许非因果注意力，目标验证仍遵循自己的因果语义。mask 占位符不等于已经得到前一位置的真实候选值，块内位置相关性仍是重要问题。
+
+[DSpark](https://docs.vllm.ai/projects/speculators/en/latest/user_guide/algorithms/dspark/)增加低秩 Markov 修正和接受概率预测头，将前一候选的身份加入后续位置，并为验证长度提供信号。神经网络主干并行起草，位置修正仍可能带有轻量顺序依赖。自适应验证预算也已有 [Sequoia](https://arxiv.org/abs/2402.12374)等先前工作；不同方法的价值应结合自身机制分析。
 
 ## 五、工程实现还必须处理哪些问题？
 
@@ -136,4 +165,4 @@ DSpark 在此类并行 Draft 骨架上增加 Markov 风格的依赖修正和用�
 
 [Speculative Decoding 原始论文](https://arxiv.org/abs/2211.17192) · [vLLM Speculative Decoding](https://docs.vllm.ai/en/stable/features/speculative_decoding/) · [Speculators Algorithms](https://docs.vllm.ai/projects/speculators/en/latest/user_guide/algorithms/) · [DSpark](https://docs.vllm.ai/projects/speculators/en/latest/user_guide/algorithms/dspark/) · [EAGLE](https://arxiv.org/abs/2401.15077)
 
-各方法的公开实现、性能与无损采样支持范围依赖具体版本和验证算法。本文没有给出未经实测的加速数字。
+各方法的采样语义由对应验证算法决定，性能则需在相同模型、硬件与负载下比较。

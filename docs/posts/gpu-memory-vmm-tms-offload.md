@@ -156,6 +156,67 @@ saved_size = flat_param_buffer.untyped_storage().nbytes()
 
 Pinned Host Memory 可在适用的设备和数据路径上改善 H2D/D2H 传输行为，但它有主机内存占用与锁页成本；`non_blocking=True` 的调用语义也不等于数据已经抵达 GPU。必须通过事件或合适的同步机制确保后续计算不会使用未完成的拷贝。
 
+
+### CPU View 如何参与权重同步
+
+```python
+param._relax_cpu_offload_data = cpu_data[start:end].view(param.shape)
+ 
+# weight_update/common.py
+if getattr(x, "_relax_cpu_offload_data", None) is not None         and x.storage().size() == 0:
+    return x._relax_cpu_offload_data
+```
+
+参数对象可能仍被权重同步代码使用，但其 GPU Storage 已缩为零。额外的 CPU View 让同步逻辑能够在 Sleep 期间从备份读取有效参数。View 与 cpu_data 共享内存，下一轮 Offload 会覆盖这块 CPU 缓冲区，因此 Reload 时必须及时删除旧 View，避免跨周期读到过期数据。
+
+### Reload 的参数与梯度恢复
+
+```python
+buffer.grad_data.storage().resize_(buffer.grad_data_size)
+buffer.grad_data.zero_()
+ 
+buffer.param_data.storage().resize_(buffer.param_data_size)
+buffer.param_data.copy_(buffer.param_data.cpu_data,
+                       non_blocking=_NON_BLOCKING)
+# 删除临时 CPU 视图；如使用异步 H2D，返回前做必要同步
+```
+
+恢复参数时要把数据拷回设备。若已完成梯度消费且不处于梯度累积中，梯度缓冲区只需重新分配并清零。持久复用 CPU 备份可避免反复分配，但备份会继续占用主机内存。
+
+### Dispatcher 引用与显存回收
+
+DeepEP/HybridEP Dispatcher 缓存中的 token_probs、dispatched_probs 等 Tensor 可能携带 grad_fn，进而引用 Autograd Graph 和 Activation。若只是释放 Gradient Buffer，这些 Python 引用仍可能阻止显存回收。PR 遍历当前、保存的训练和推理 dispatcher，以及关联通信管理器，清理已知缓存字段。
+
+### Actor、策略选择与调用链
+
+```python
+# relax/backends/megatron/actor.py
+self._train_state_offloader = MegatronTrainStateOffloader(
+    self.model, self.optimizer, args
+)
+ 
+# sleep()
+self._train_state_offloader.offload()
+# wake_up()
+self._train_state_offloader.reload()
+# update_weights()
+with self._train_state_offloader.disable_during_update():
+    self.weight_updater.update_weights()
+```
+
+Facade 根据 --offload-train、--selective-offload 和 TMS 的 LD_PRELOAD 状态选择策略。TMS 策略委托 pause/resume，并在权重更新期间临时 disable Hook；Selective 策略直接控制状态搬移，更新期间使用 nullcontext。
+
+以下伪代码只展示启用训练卸载后的策略选择。
+
+```python
+if offload_train and not selective_offload and tms_hook_preloaded:
+    strategy = TMS()
+else:
+    strategy = Selective()
+```
+
+实际代码还有 TMS 初始化失败时的 warning/fallback，以及 offload_train=False 时的 no-op。启动器在 --selective-offload 下不再为训练 Actor 配置 TMS 的 LD_PRELOAD。
+
 ## 七、TMS 与 Selective Offload 各有什么限制？
 
 | 维度 | TMS 类方案 | Selective Training-State Offload |
@@ -184,4 +245,4 @@ PyTorch Caching Allocator 主要解决分配效率和缓存复用；CUDA VMM 使
 
 [NVIDIA CUDA Driver VMM API](https://docs.nvidia.com/cuda/cuda-driver-api/cuda_driver_api/group__CUDA__VA.html) · [PyTorch CUDA Memory Management](https://docs.pytorch.org/docs/stable/notes/cuda.html#memory-management) · [Torch Memory Saver](https://github.com/fzyzcjy/torch_memory_saver) · [Relax Selective CPU Offload PR #85](https://github.com/redai-studio/Relax/pull/85)
 
-文中简化的调用路径和伪代码用于解释机制，不应视为完整的 CUDA Driver Trace 或可直接用于任意训练框架的实现。相关行为依赖实际代码版本和设备后端。
+代码片段对应 Relax PR #85 的卸载路径；API 与后端策略按所使用的版本选择。

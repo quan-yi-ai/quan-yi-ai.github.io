@@ -18,15 +18,17 @@ lastUpdated: false
 
 `torch.compile()` 看似是一次函数包装，但背后至少有两类工作：**捕获程序中可优化的计算关系**，以及**为给定硬件选择合适的算子融合、调度和代码生成路径**。理解它时，应该把前端的 Dynamo 与后端的 Inductor 分开，也要区分训练时的 AOTAutograd 与另一个含义不同的离线 AOT Compile。
 
-本文以公开的 [PyTorch Compiler 官方文档](https://docs.pytorch.org/docs/stable/torch.compiler.html) 作为机制核对依据，在原有学习笔记基础上补充动态图捕获、Guard、动态图形状、反向传播与 CUDA Graph 的关联。
+学习材料包括 Cishoon 的《图解 PyTorch 编译器》系列，以及 [PyTorch Compiler 官方文档](https://docs.pytorch.org/docs/stable/torch.compiler.html)。下文围绕图捕获、Guard、反向传播、融合与执行展开。
 
 ## 一、Eager Mode 的开销从哪里产生？
 
 考虑一个简单的逐元素表达式：
 
-\[
+
+$
 Y=\operatorname{relu}(X\cdot 2+1)
-\]
+$
+
 
 普通 Eager 执行可能在 GPU 上分别发起乘法、加法和 ReLU 计算，并为中间结果分配或写回 Tensor。对于计算量很小的 Pointwise 操作，Kernel Launch 与中间数据的 HBM 读写可能比实际算术更值得优化。
 
@@ -98,6 +100,12 @@ Graph Break 会打断融合范围，并使多个编译图之间存在 Python 调
 
 **AOTAutograd 与“把编译产物打包部署”的 AOT Compile 不是同一个概念**。后者属于额外的提前编译与部署工作流，具体 API 和稳定性取决于 PyTorch 版本。
 
+### 联合图如何决定保存与重算
+
+前向输出之外，反向还需要部分中间结果。AOTAutograd 可在联合图上使用分区策略，将计算切成前向与反向，并选择保存哪些值、重算哪些操作。最小割重计算分区器是其中一种实现，代价模型决定了内存和重计算之间的取舍。
+
+Decomposition 将适合分解的高层操作表达为基础算子组合；Functionalization 则处理原地修改及别名语义，使图更便于分析。未被后端直接生成的操作也可以通过受支持的外部算子路径执行。
+
 ## 六、TorchInductor：IR、融合与代码生成
 
 Dynamo 提供的图进入 Inductor 等后端后，需要进行调度和代码生成。Inductor 的主要工作包括识别算子读写关系、决定 Fusion Group、安排 Loop/Block 结构，以及为目标设备选择 Kernel 实现。
@@ -113,6 +121,12 @@ Dynamo 提供的图进入 Inductor 等后端后，需要进行调度和代码生
 Triton 允许开发者以 Block 为粒度描述索引和张量运算，编译器把这些程序实例映射到 GPU 执行资源上。有效的 Block Size 取决于并行度、寄存器、Shared Memory、访存模式和计算强度。
 
 所谓“融合更多算子就一定更快”并不成立：更大的 Fusion Group 可能导致寄存器压力、Occupancy 下降或重复计算，最终必须依靠 Benchmark 验证。
+
+### 编译缓存与 max-autotune
+
+[编译缓存](https://docs.pytorch.org/tutorials/recipes/torch_compile_caching_tutorial.html)可以复用图、生成代码或调优结果等产物。进程内 Guard 命中和重启后的持久缓存命中是不同层次；跨进程复用还受软件版本、设备及缓存键约束。
+
+`mode="max-autotune"` 会在适用路径上搜索并测量候选实现，例如矩阵乘模板配置，以增加编译成本换取稳态性能的机会。缓存可减少重复搜索，但具体收益仍由形状和硬件决定。
 
 ## 七、CUDA Graphs 与编译器的关系
 
@@ -150,4 +164,4 @@ CUDA Graph 可以降低重复 Kernel Launch 的 CPU 调度成本，但它和 Dyn
 
 [PyTorch torch.compiler](https://docs.pytorch.org/docs/stable/torch.compiler.html) · [Dynamo Overview](https://docs.pytorch.org/docs/main/user_guide/torch_compiler/torch.compiler_dynamo_overview.html) · [Compiler Programming Model](https://docs.pytorch.org/docs/main/user_guide/torch_compiler/compile/programming_model.html) · [Graph Breaks](https://docs.pytorch.org/docs/main/user_guide/torch_compiler/compile/programming_model.graph_breaks_index.html) · [Reducing Compile Time](https://docs.pytorch.org/docs/main/user_guide/torch_compiler/compile/programming_model.reducing_compile_time.html)
 
-本文基于 PyTorch 官方技术文档解释 Guard、Recompilation、编译后端与部署边界。示例不包含实际 Benchmark，具体行为以使用的 PyTorch 版本和硬件为准。
+
