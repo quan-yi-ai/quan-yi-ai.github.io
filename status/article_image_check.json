@@ -1,0 +1,451 @@
+{
+  "ok": true,
+  "pages": {
+    "agentic-rl-infrastructure": [
+      "/diagrams/agentic-tool-loop.svg",
+      "/images/figures/agentic-rl-infrastructure-01.png"
+    ],
+    "gpu-memory-vmm-tms-offload": [
+      "/diagrams/gpu-tensor-storage.svg",
+      "/diagrams/gpu-vmm-mapping.svg",
+      "/diagrams/gpu-tms-pause.svg",
+      "/diagrams/gpu-allocation-hook.svg",
+      "/diagrams/gpu-selective-offload.svg"
+    ],
+    "minicpmo-45-omni-inference": [
+      "/images/figures/minicpmo-45-omni-inference-01.png",
+      "/diagrams/minicpm-tdm.svg",
+      "/diagrams/minicpm-stack.svg",
+      "/diagrams/minicpm-three-stage.svg"
+    ],
+    "multimodal-generation-benchmark": [
+      "/diagrams/multimodal-benchmark-stages.svg"
+    ],
+    "python-concurrency-runtime": [
+      "/diagrams/python-concurrency-comparison.svg",
+      "/diagrams/python-event-loop-flow.svg",
+      "/diagrams/python-structured-concurrency.svg",
+      "/diagrams/python-gil-execution.svg"
+    ],
+    "python-functions-context": [
+      "/diagrams/python-decorator-closure.svg",
+      "/diagrams/python-runtime-protocols.svg",
+      "/diagrams/python-context-lifecycle.svg"
+    ],
+    "pytorch-compiler-illustrated": [
+      "/diagrams/compiler-fusion.svg",
+      "/diagrams/compiler-stack.svg",
+      "/images/figures/pytorch-compiler-illustrated-01.jpg"
+    ],
+    "ray-distributed-framework": [
+      "/diagrams/ray-task-actor.svg",
+      "/diagrams/ray-object-dag.svg",
+      "/diagrams/ray-cluster-architecture.svg",
+      "/images/figures/ray-distributed-framework-03.png",
+      "/images/figures/ray-distributed-framework-04.png",
+      "/images/figures/ray-distributed-framework-05.png",
+      "/diagrams/ray-vllm-boundary.svg"
+    ],
+    "rl-posttraining-frameworks": [
+      "/diagrams/rl-posttraining-flow.svg",
+      "/images/figures/rl-posttraining-frameworks-01.png",
+      "/images/figures/rl-posttraining-frameworks-03.png",
+      "/images/figures/rl-posttraining-frameworks-04.png"
+    ],
+    "rlinf-architecture": [
+      "/diagrams/rlinf-architecture.svg",
+      "/diagrams/rlinf-weight-sync.svg"
+    ],
+    "rlkernel-moe-router-consistency": [
+      "/diagrams/rlkernel-verification.svg"
+    ],
+    "sglang-startup-log-analysis": [
+      "/diagrams/sglang-startup-stages.svg",
+      "/diagrams/sglang-gpu-budget.svg"
+    ],
+    "speculative-decoding-guide": [
+      "/diagrams/speculative-verify.svg",
+      "/images/figures/speculative-decoding-guide-01.jpg",
+      "/diagrams/speculative-tradeoff.svg",
+      "/images/figures/speculative-decoding-guide-02.png",
+      "/diagrams/speculative-mtp-depth.svg",
+      "/images/figures/speculative-decoding-guide-04.png",
+      "/diagrams/speculative-eagle-shift.svg",
+      "/images/figures/speculative-decoding-guide-06.png"
+    ],
+    "transferqueue-python-cpp-rust": [
+      "/diagrams/transferqueue-rearchitecture.svg"
+    ],
+    "transferqueue": [
+      "/diagrams/tq-figure-1.svg",
+      "/images/figures/transferqueue-01.png",
+      "/images/figures/transferqueue-02.png",
+      "/diagrams/tq-sample-lifecycle.svg",
+      "/images/figures/transferqueue-03.png",
+      "/diagrams/tq-put-get-sequence.svg",
+      "/diagrams/tq-storage-routing.svg",
+      "/diagrams/tq-figure-4.svg",
+      "/images/figures/transferqueue-05.png",
+      "/diagrams/tq-figure-7.svg",
+      "/diagrams/tq-backend-paths.svg",
+      "/diagrams/tq-memory-path.svg"
+    ],
+    "transformer-parallel-attention": [
+      "/diagrams/parallel-overview.svg",
+      "/diagrams/parallel-8gpu-layout.svg",
+      "/images/parallel/figure-1.svg",
+      "/diagrams/tp-attention-heads.svg",
+      "/diagrams/tp-cp-shapes.svg",
+      "/diagrams/online-softmax.svg",
+      "/images/parallel/figure-5.svg",
+      "/diagrams/ring-vs-tree-attention.svg",
+      "/images/parallel/figure-4.svg"
+    ]
+  },
+  "images": {
+    "/diagrams/agentic-tool-loop.svg": {
+      "sha256": "28a4897e00e86988373aaa33cef6f4e6a3ef122216da07d74352669f1bcece8f",
+      "bytes": 3441
+    },
+    "/images/figures/agentic-rl-infrastructure-01.png": {
+      "sha256": "c23bbe6359baaafdfba501e527068e2327c5ddcc6cd2c6dae128f92b03b83a0c",
+      "bytes": 205950
+    },
+    "/diagrams/gpu-tensor-storage.svg": {
+      "sha256": "cc573b408265c83b570d603f1a4cce1f5557a41d67f14e05862a1a835c29d444",
+      "bytes": 2817
+    },
+    "/diagrams/gpu-vmm-mapping.svg": {
+      "sha256": "847f031165a866d84f40f86f8163fd1e2c3354c180e7ec23fb4efc61b5f3a678",
+      "bytes": 3596
+    },
+    "/diagrams/gpu-tms-pause.svg": {
+      "sha256": "6a0623456622126c544ccdc95eb9e15db3a2ec0473ff15e48446a7f41a4992f3",
+      "bytes": 3441
+    },
+    "/diagrams/gpu-allocation-hook.svg": {
+      "sha256": "132f9ae148dd8d94b481523be611dbb16a9678fe37e633da699e9cab392a237f",
+      "bytes": 2830
+    },
+    "/diagrams/gpu-selective-offload.svg": {
+      "sha256": "6b6da373a8a6e38caf255f57f61ecf62de396508cdacc947b7397d55c0475bb5",
+      "bytes": 3329
+    },
+    "/images/figures/minicpmo-45-omni-inference-01.png": {
+      "sha256": "b71647636efe4cf2dc39ea780cbfc5859c73065997bb70defcfb8b76566e1636",
+      "bytes": 172613
+    },
+    "/diagrams/minicpm-tdm.svg": {
+      "sha256": "f4888838f3e614cb1a092e91b98a81878edcec9d4135175cf4d6247d577c5c0e",
+      "bytes": 3035
+    },
+    "/diagrams/minicpm-stack.svg": {
+      "sha256": "d062d652bd945a64e8ed7c8e8d5b8a6b327f37fdb3c7a4976a260655dc763a13",
+      "bytes": 2813
+    },
+    "/diagrams/minicpm-three-stage.svg": {
+      "sha256": "06ff4f1ea615abd2e35adea17add13af82f1a748494babe7bba50f56462f47f7",
+      "bytes": 3179
+    },
+    "/diagrams/multimodal-benchmark-stages.svg": {
+      "sha256": "bf7a5b59637fb8ec6dad8fad43a0eebc441f464558c20fac60b04e8c8fb2d2f7",
+      "bytes": 2206
+    },
+    "/diagrams/python-concurrency-comparison.svg": {
+      "sha256": "d4d2e3b94c131ee7fd0924d1b47605727bbddf0ddf25bb1bdb16febcc50ec14f",
+      "bytes": 2396
+    },
+    "/diagrams/python-event-loop-flow.svg": {
+      "sha256": "db9afcf69c454458233a56c13e5f9b1aee95086d0e8fa526d62ef8961451eb40",
+      "bytes": 2667
+    },
+    "/diagrams/python-structured-concurrency.svg": {
+      "sha256": "563557261252e9bb4f7234979615c3d65e5da1f0cc973c38f77f5e24a54f0e87",
+      "bytes": 2693
+    },
+    "/diagrams/python-gil-execution.svg": {
+      "sha256": "6a8139b732c10922856e26af18bd93167a6ee2c3b050516553483b9c44c198f4",
+      "bytes": 1999
+    },
+    "/diagrams/python-decorator-closure.svg": {
+      "sha256": "f30020e50616defc4c9eb3d128f1a4f524c5f8627acf699c009db0a0ef2fe7ed",
+      "bytes": 2981
+    },
+    "/diagrams/python-runtime-protocols.svg": {
+      "sha256": "8e6c1bdd986761ba5e2ffc8c31b4654f724d8065653d57f6ebb7b98bcf445ec1",
+      "bytes": 2471
+    },
+    "/diagrams/python-context-lifecycle.svg": {
+      "sha256": "d8baccca76353a5d6c1ba6c837f597edc311e08bdcd5acf1e7d8caa6e4e105c0",
+      "bytes": 3452
+    },
+    "/diagrams/compiler-fusion.svg": {
+      "sha256": "ea4ce561e1bdd309a50169b12091da6aac8d84a6e08bf4819e79b98fe22efd1a",
+      "bytes": 3471
+    },
+    "/diagrams/compiler-stack.svg": {
+      "sha256": "10978bd8c196588e299c72219a85a818300f112dd10ffe9f7700d5b797ab8554",
+      "bytes": 3636
+    },
+    "/images/figures/pytorch-compiler-illustrated-01.jpg": {
+      "sha256": "ed977fb807c29484c6471b91f3db82b5771a44d18c721b2618bb22dba916a720",
+      "bytes": 455613
+    },
+    "/diagrams/ray-task-actor.svg": {
+      "sha256": "a211b410ecada0aefc67b187eeb461d5dff0250d552045dd9a59c3e42a179a48",
+      "bytes": 3903
+    },
+    "/diagrams/ray-object-dag.svg": {
+      "sha256": "31a44de49687e292ed5efc5ff86ef9446586f89f4baf3bac2909430b7149d32b",
+      "bytes": 2929
+    },
+    "/diagrams/ray-cluster-architecture.svg": {
+      "sha256": "7bcb37a6b81f582020d5666c1a6e8fd83163c08323feacaa953c7eec97bfefeb",
+      "bytes": 3394
+    },
+    "/images/figures/ray-distributed-framework-03.png": {
+      "sha256": "b7aaf9886cb67e0787f43ae3d4c8fda38f80ad400d75abfd92fa390c78ea3346",
+      "bytes": 103957
+    },
+    "/images/figures/ray-distributed-framework-04.png": {
+      "sha256": "2b280733ba8339812d10500b4342a06a6357d0bafdb90b9ef252c488ae8442a3",
+      "bytes": 119016
+    },
+    "/images/figures/ray-distributed-framework-05.png": {
+      "sha256": "4ef4a036e1fb8c5b64bfdd80bcbe0a06829588685d508b94d4471f8420540e49",
+      "bytes": 296038
+    },
+    "/diagrams/ray-vllm-boundary.svg": {
+      "sha256": "21505b0a6cb27a1c002cf5069fd02ee598bb0d7f36b709c0354393fd275e5163",
+      "bytes": 3421
+    },
+    "/diagrams/rl-posttraining-flow.svg": {
+      "sha256": "38b78ce894655fec53179be5ff285d6de065b7866e459831c3dae90c148a6b7e",
+      "bytes": 3754
+    },
+    "/images/figures/rl-posttraining-frameworks-01.png": {
+      "sha256": "c0807bb111ec73fbe7e8d274f3fd01592ad925bc2cb5bccef58d9f5cca450be5",
+      "bytes": 342849
+    },
+    "/images/figures/rl-posttraining-frameworks-03.png": {
+      "sha256": "19ede3036732f98ff49346881ff9797c2e20611e87ee19de7e4771ffd8225c22",
+      "bytes": 282897
+    },
+    "/images/figures/rl-posttraining-frameworks-04.png": {
+      "sha256": "514a12d6021c025a35628be0e0e2e8e476ccdded1aaab310bcd57f91708ad6da",
+      "bytes": 274439
+    },
+    "/diagrams/rlinf-architecture.svg": {
+      "sha256": "ffdee002b90f575ab26b2169781197d03839ad2732c327cf23e1876607685fea",
+      "bytes": 3854
+    },
+    "/diagrams/rlinf-weight-sync.svg": {
+      "sha256": "75fccce05355ab7c2cc3fb74ee481b0d1edaf825e45445a606de077178ac919c",
+      "bytes": 2966
+    },
+    "/diagrams/rlkernel-verification.svg": {
+      "sha256": "29b5dbb7a97e48c5658e21b460a104d2faf320562404bda24ab6ade817812cb3",
+      "bytes": 2846
+    },
+    "/diagrams/sglang-startup-stages.svg": {
+      "sha256": "940df988436f683f7b743940c74a8dd2bf3d41c8b376dc103d645cfca1cacd62",
+      "bytes": 3686
+    },
+    "/diagrams/sglang-gpu-budget.svg": {
+      "sha256": "1966763f7eca2b7619be16d4263bc65e6fc9cd04e6de7489c7cf195ddb5ef70b",
+      "bytes": 2287
+    },
+    "/diagrams/speculative-verify.svg": {
+      "sha256": "fa78c5d354d3c7351f7477c8bb44754ee8a8fd571dc62309dc044ec2ded4c652",
+      "bytes": 3274
+    },
+    "/images/figures/speculative-decoding-guide-01.jpg": {
+      "sha256": "e8423a4dded3bfe287b559d88d6057e9e1310e2618ee11281319d2e3aec0ec7b",
+      "bytes": 222102
+    },
+    "/diagrams/speculative-tradeoff.svg": {
+      "sha256": "a50a38b405716b98ab79821602236190b7ff675f3ad6b59c665514c286b46e53",
+      "bytes": 2959
+    },
+    "/images/figures/speculative-decoding-guide-02.png": {
+      "sha256": "8ba3eb7a15b68739fb09a964fe82090cfc80d6770cf8395b9574e006f0cd3fbd",
+      "bytes": 140606
+    },
+    "/diagrams/speculative-mtp-depth.svg": {
+      "sha256": "f27d821b83caae4353585d9216c2cb6ed0093a5252328ac0131633f987cc1f43",
+      "bytes": 3029
+    },
+    "/images/figures/speculative-decoding-guide-04.png": {
+      "sha256": "0c179f5941f69fb739c50c6738f70f60772d2b2fae1f44cb47bdb26b7b22352b",
+      "bytes": 795099
+    },
+    "/diagrams/speculative-eagle-shift.svg": {
+      "sha256": "da86b739f14fa7e48b82152cf3d7be29b6d60eb4e84a32df5ae92280a511743c",
+      "bytes": 3330
+    },
+    "/images/figures/speculative-decoding-guide-06.png": {
+      "sha256": "99dc71d07bdda0ef9a3f3b91431026ea4c21d5de9b13091c5880e2ee3fc08ec5",
+      "bytes": 1009165
+    },
+    "/diagrams/transferqueue-rearchitecture.svg": {
+      "sha256": "70aace65c05441ce630fe95dab46bbed54e29253ba550e178c75bf2a62dca0a7",
+      "bytes": 3557
+    },
+    "/diagrams/tq-figure-1.svg": {
+      "sha256": "628eeca3a643929530191fd667329f39c6f4bab6186e8724307544530bcf3ba7",
+      "bytes": 3106
+    },
+    "/images/figures/transferqueue-01.png": {
+      "sha256": "5c2b6c36b02bb4a224e45c344677235dad08de212a678a1cb76c964844e7662d",
+      "bytes": 805939
+    },
+    "/images/figures/transferqueue-02.png": {
+      "sha256": "ce4dc2fddcdce437257d27990ea0d3ca877ad5c18894c329ab520dfa2a7362ab",
+      "bytes": 387402
+    },
+    "/diagrams/tq-sample-lifecycle.svg": {
+      "sha256": "a973a2f873b7a35d32a1beb710eccca6f345bbb91a32212c3c53bf702c1d63fd",
+      "bytes": 7153
+    },
+    "/images/figures/transferqueue-03.png": {
+      "sha256": "f96c27ab23648cc6f82907bafc4fb026df0f0445f6841a95228455143f5183fc",
+      "bytes": 352836
+    },
+    "/diagrams/tq-put-get-sequence.svg": {
+      "sha256": "8a030b34f362c4f5ac1aa5b4f8a72a2bf477b3ebe00b71909d01dff445aff6f1",
+      "bytes": 4137
+    },
+    "/diagrams/tq-storage-routing.svg": {
+      "sha256": "cc97b65442e8eed5cb558ef04348ebe477589e4971d8b29eedced81dd4b266ab",
+      "bytes": 2898
+    },
+    "/diagrams/tq-figure-4.svg": {
+      "sha256": "4f22a29624ada7b7ef708604553060d21ba4aedd76a1548f0099ecbeaac00db4",
+      "bytes": 3409
+    },
+    "/images/figures/transferqueue-05.png": {
+      "sha256": "aa34c275423e6ce06eafbcf5fd1c6df75ad8560a62ffcf66e55d1df587f0f08c",
+      "bytes": 246133
+    },
+    "/diagrams/tq-figure-7.svg": {
+      "sha256": "325f0b0796b91fbae82f84204f277a85dda3f3b182f183c95d442420543d18a5",
+      "bytes": 3383
+    },
+    "/diagrams/tq-backend-paths.svg": {
+      "sha256": "0de10d86373067700d7a8965f011c1e1612f073f474c4a85f22e1ea7b6687dc4",
+      "bytes": 3757
+    },
+    "/diagrams/tq-memory-path.svg": {
+      "sha256": "4b48ec572d17e09be51d13f27038c7e444c1e3be9ba71934a67829a678b6616f",
+      "bytes": 3196
+    },
+    "/diagrams/parallel-overview.svg": {
+      "sha256": "dfde70a49fa8033b99be9e867dc604bfaa97569750c61b3d3d6f3593868a5a79",
+      "bytes": 5206
+    },
+    "/diagrams/parallel-8gpu-layout.svg": {
+      "sha256": "e564404f3ddde14af6169399fa3c68b1d5d3fa1910f69a1b14036993ae5dd195",
+      "bytes": 4384
+    },
+    "/images/parallel/figure-1.svg": {
+      "sha256": "0cd9ad0db578c7e6275fc1e8f5ac6b70b0c5189291292b5e89f532dd69ac4767",
+      "bytes": 3598
+    },
+    "/diagrams/tp-attention-heads.svg": {
+      "sha256": "50edf7f666fbc426dab607818a784cddaa78981a213bf926c50a25f10df624cf",
+      "bytes": 3969
+    },
+    "/diagrams/tp-cp-shapes.svg": {
+      "sha256": "eef695b71aeb658e11c04acf6edb41ae90da9034706d3d523ba9b093d30eac34",
+      "bytes": 2094
+    },
+    "/diagrams/online-softmax.svg": {
+      "sha256": "f68c5f19840b6de97b78e54a277d8cfd3119bf04f9de39c3045ae6b0f8c20e77",
+      "bytes": 4500
+    },
+    "/images/parallel/figure-5.svg": {
+      "sha256": "66ea820b3af05ceecdd5bc817de97671de9c48b474bc2604f572762c7c71f607",
+      "bytes": 3198
+    },
+    "/diagrams/ring-vs-tree-attention.svg": {
+      "sha256": "9563bcb895945d72d20a85287764013f8db8a9f7a927143abd7aa303e756248e",
+      "bytes": 5343
+    },
+    "/images/parallel/figure-4.svg": {
+      "sha256": "e16ec39aaa15190b40f9667c945c672b4a3d3b38b9e7bd71f63806542a131d79",
+      "bytes": 3991
+    }
+  },
+  "originals": 17,
+  "errors": [],
+  "live_images": [
+    "/diagrams/gpu-allocation-hook.svg",
+    "/diagrams/agentic-tool-loop.svg",
+    "/diagrams/gpu-vmm-mapping.svg",
+    "/diagrams/gpu-tensor-storage.svg",
+    "/diagrams/gpu-tms-pause.svg",
+    "/images/figures/agentic-rl-infrastructure-01.png",
+    "/diagrams/minicpm-tdm.svg",
+    "/diagrams/minicpm-stack.svg",
+    "/diagrams/gpu-selective-offload.svg",
+    "/images/figures/minicpmo-45-omni-inference-01.png",
+    "/diagrams/multimodal-benchmark-stages.svg",
+    "/diagrams/python-concurrency-comparison.svg",
+    "/diagrams/minicpm-three-stage.svg",
+    "/diagrams/python-decorator-closure.svg",
+    "/diagrams/python-structured-concurrency.svg",
+    "/diagrams/python-gil-execution.svg",
+    "/diagrams/python-runtime-protocols.svg",
+    "/diagrams/python-context-lifecycle.svg",
+    "/diagrams/python-event-loop-flow.svg",
+    "/diagrams/compiler-fusion.svg",
+    "/diagrams/compiler-stack.svg",
+    "/diagrams/ray-task-actor.svg",
+    "/diagrams/ray-cluster-architecture.svg",
+    "/diagrams/ray-object-dag.svg",
+    "/images/figures/ray-distributed-framework-03.png",
+    "/images/figures/ray-distributed-framework-04.png",
+    "/diagrams/rl-posttraining-flow.svg",
+    "/diagrams/ray-vllm-boundary.svg",
+    "/images/figures/pytorch-compiler-illustrated-01.jpg",
+    "/images/figures/ray-distributed-framework-05.png",
+    "/images/figures/rl-posttraining-frameworks-01.png",
+    "/images/figures/rl-posttraining-frameworks-04.png",
+    "/images/figures/rl-posttraining-frameworks-03.png",
+    "/diagrams/rlkernel-verification.svg",
+    "/diagrams/rlinf-weight-sync.svg",
+    "/diagrams/sglang-startup-stages.svg",
+    "/diagrams/sglang-gpu-budget.svg",
+    "/diagrams/rlinf-architecture.svg",
+    "/diagrams/speculative-verify.svg",
+    "/diagrams/speculative-tradeoff.svg",
+    "/diagrams/speculative-mtp-depth.svg",
+    "/images/figures/speculative-decoding-guide-01.jpg",
+    "/images/figures/speculative-decoding-guide-02.png",
+    "/diagrams/speculative-eagle-shift.svg",
+    "/diagrams/transferqueue-rearchitecture.svg",
+    "/images/figures/speculative-decoding-guide-04.png",
+    "/diagrams/tq-figure-1.svg",
+    "/diagrams/tq-sample-lifecycle.svg",
+    "/images/figures/speculative-decoding-guide-06.png",
+    "/images/figures/transferqueue-02.png",
+    "/diagrams/tq-storage-routing.svg",
+    "/images/figures/transferqueue-03.png",
+    "/images/figures/transferqueue-01.png",
+    "/diagrams/tq-figure-4.svg",
+    "/diagrams/tq-put-get-sequence.svg",
+    "/diagrams/tq-figure-7.svg",
+    "/images/figures/transferqueue-05.png",
+    "/diagrams/tq-memory-path.svg",
+    "/diagrams/tp-attention-heads.svg",
+    "/diagrams/tq-backend-paths.svg",
+    "/images/parallel/figure-1.svg",
+    "/diagrams/parallel-8gpu-layout.svg",
+    "/diagrams/tp-cp-shapes.svg",
+    "/diagrams/parallel-overview.svg",
+    "/diagrams/online-softmax.svg",
+    "/images/parallel/figure-5.svg",
+    "/diagrams/ring-vs-tree-attention.svg",
+    "/images/parallel/figure-4.svg"
+  ]
+}

@@ -11,20 +11,20 @@
     "svg_is_vector": true,
     "transferqueue_http_status": 200,
     "transferqueue_article_present": true,
-    "transferqueue_figure_count": 8,
+    "transferqueue_figure_count": 12,
     "transferqueue_svg_vector": true,
     "editorial_pages": {
       "ray": {
         "http_status": 200,
         "updated_heading": true,
         "old_editorial_heading_absent": true,
-        "figure_count": 4
+        "figure_count": 7
       },
       "transferqueue": {
         "http_status": 200,
         "updated_heading": true,
         "old_editorial_heading_absent": true,
-        "figure_count": 8
+        "figure_count": 12
       },
       "rust": {
         "http_status": 200,
@@ -36,7 +36,7 @@
         "http_status": 200,
         "updated_heading": true,
         "old_editorial_heading_absent": true,
-        "figure_count": 8
+        "figure_count": 9
       }
     },
     "migrated_articles": {
@@ -48,7 +48,7 @@
       "python-functions-context": {
         "status": 200,
         "article_header": true,
-        "figures": 1
+        "figures": 3
       },
       "rlinf-architecture": {
         "status": 200,
@@ -58,32 +58,32 @@
       "minicpmo-45-omni-inference": {
         "status": 200,
         "article_header": true,
-        "figures": 2
+        "figures": 4
       },
       "rl-posttraining-frameworks": {
         "status": 200,
         "article_header": true,
-        "figures": 1
+        "figures": 4
       },
       "agentic-rl-infrastructure": {
         "status": 200,
         "article_header": true,
-        "figures": 1
+        "figures": 2
       },
       "gpu-memory-vmm-tms-offload": {
         "status": 200,
         "article_header": true,
-        "figures": 3
+        "figures": 5
       },
       "pytorch-compiler-illustrated": {
         "status": 200,
         "article_header": true,
-        "figures": 2
+        "figures": 3
       },
       "speculative-decoding-guide": {
         "status": 200,
         "article_header": true,
-        "figures": 2
+        "figures": 8
       },
       "rlkernel-moe-router-consistency": {
         "status": 200,
@@ -103,8 +103,8 @@
     },
     "migrated_articles_all_ok": true
   },
-  "run_id": "45314677383",
-  "source_sha": "35f095ef09ad86adb85166c55351c544c2a0df1d",
+  "run_id": "45318026606",
+  "source_sha": "efeb36722f6a980c3e8987a0dd1236c9afc5f9ae",
   "build": "success",
   "deploy": "success",
   "result": "success"
