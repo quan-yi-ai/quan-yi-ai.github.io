@@ -127,32 +127,11 @@
       "height": 300
     },
     {
-      "path": "/images/gpu-memory-full-stack/colocate-loop.svg",
-      "sha256": "b6b0bd8a9b622976960598bcee55b322562c9722cb30a3dc2eb6bc053d4debea",
-      "bytes": 2654,
-      "width": 720,
-      "height": 440
-    },
-    {
       "path": "/images/gpu-memory-full-stack/engine-two-routes.svg",
       "sha256": "6cea41e390d814661170bf67f6ddf590023153297073387cf02561f4bba9ad63",
       "bytes": 2017,
       "width": 820,
       "height": 300
-    },
-    {
-      "path": "/images/gpu-memory-full-stack/overall-stack.svg",
-      "sha256": "6bff2c906f4cd37e506f21471c9fe64134c51950733c29d6a442fdc2adcaabc0",
-      "bytes": 3275,
-      "width": 780,
-      "height": 560
-    },
-    {
-      "path": "/images/gpu-memory-full-stack/pause-resume-sequence.svg",
-      "sha256": "56527f23ec4de5c7e373a96d8d0fd079a9723f86a8112cfc34890c6d93ca73d1",
-      "bytes": 2827,
-      "width": 760,
-      "height": 430
     },
     {
       "path": "/images/gpu-memory-full-stack/tms-state-machine.svg",

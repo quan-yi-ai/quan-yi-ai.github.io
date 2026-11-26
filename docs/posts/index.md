@@ -10,7 +10,7 @@
 - **[RL-Kernel：MoE Router 的训推数值一致性如何验证？](/posts/rlkernel-moe-router-consistency)** — 确定性、Batch 不变性、CPU Oracle 与跨引擎首差分定位。
 - **[投机解码：从无损验证到 EAGLE、MTP 与并行草稿](/posts/speculative-decoding-guide)** — 接受/拒绝采样、草稿器设计和性能模型。
 - **[图解 PyTorch 编译器：从 Dynamo 到 Inductor 与 Triton](/posts/pytorch-compiler-illustrated)** — FX Graph、Guard、AOTAutograd、融合与 CUDA Graph。
-- **[GPU 显存管理：从 PyTorch Allocator、CUDA VMM 到 TMS 与 Selective Offload](/posts/gpu-memory-vmm-tms-offload)** — 显存映射、模型状态卸载与正确性边界。
+- **[RL 训练状态卸载：从 TMS 到 Selective CPU Offload](/posts/gpu-memory-vmm-tms-offload)** — Megatron Flat Buffer、优化器状态、CPU View 与恢复正确性。
 - **[Agentic RL Infrastructure：从单轮 Rollout 到多轮环境交互](/posts/agentic-rl-infrastructure)** — 工具调用、轨迹长尾、异步采样和 Staleness。
 - **[Python 函数对象与资源协议：闭包、装饰器、生成器和 with](/posts/python-functions-context)** — 词法环境、延迟执行与资源收尾。
 - **[大模型 RL 后训练框架：算法数据流与系统架构](/posts/rl-posttraining-frameworks)** — PPO/GRPO、Rollout、Advantage、同步与异步权重更新。

@@ -1,33 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="760" height="430" viewBox="0 0 760 430" font-family="-apple-system,Segoe UI,Helvetica,Arial,sans-serif">
-  <defs><marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#5b6472"/></marker></defs>
-  <rect width="760" height="430" fill="#ffffff"/>
-  <text x="24" y="32" font-size="15" font-weight="600" fill="#2b3a67">pause / resume 时序：ptr 不变，物理页被整体替换（H0 → H1）</text>
-
-  <rect x="40" y="52" width="680" height="48" rx="8" fill="#e9f6ef" stroke="#4fa877"/>
-  <text x="60" y="81" font-size="14" font-weight="600" fill="#1f5e3f">ACTIVE</text>
-  <text x="380" y="81" text-anchor="middle" font-size="13" fill="#3f6b53">ptr 已映射到物理页 H0</text>
-
-  <line x1="120" y1="100" x2="120" y2="140" stroke="#5b6472" stroke-width="1.8" marker-end="url(#a)"/>
-  <text x="134" y="126" font-size="13" fill="#53607a">pause(tag)</text>
-  <rect x="200" y="106" width="520" height="66" rx="8" fill="#fbfbfc" stroke="#cdd3db"/>
-  <text x="220" y="130" font-size="12.5" fill="#444c57">① （可选）offload：显存 → CPU (D2H)</text>
-  <text x="220" y="150" font-size="12.5" fill="#444c57">② cuMemUnmap(ptr)　　③ cuMemRelease(H0) —— 物理显存归还驱动</text>
-  <text x="220" y="166" font-size="11.5" fill="#99a1ad">nvidia-smi 此刻下降</text>
-
-  <rect x="40" y="186" width="680" height="48" rx="8" fill="#fdf1e3" stroke="#d79a52"/>
-  <text x="60" y="215" font-size="14" font-weight="600" fill="#8a5a1b">PAUSED</text>
-  <text x="380" y="215" text-anchor="middle" font-size="13" fill="#8a6a40">ptr 仍保留（虚拟地址未归还），物理显存已释放</text>
-
-  <line x1="120" y1="234" x2="120" y2="274" stroke="#5b6472" stroke-width="1.8" marker-end="url(#a)"/>
-  <text x="134" y="260" font-size="13" fill="#53607a">resume(tag)</text>
-  <rect x="200" y="240" width="520" height="66" rx="8" fill="#fbfbfc" stroke="#cdd3db"/>
-  <text x="220" y="264" font-size="12.5" fill="#444c57">① cuMemCreate() → 新物理页 H1　② cuMemMap(ptr, H1) 映射回同一 ptr</text>
-  <text x="220" y="284" font-size="12.5" fill="#444c57">③ cuMemSetAccess　④ （可选）onload：CPU → 显存 (H2D)</text>
-  <text x="220" y="300" font-size="11.5" fill="#99a1ad">无 backup 时内容未定义</text>
-
-  <rect x="40" y="320" width="680" height="48" rx="8" fill="#e9f6ef" stroke="#4fa877"/>
-  <text x="60" y="349" font-size="14" font-weight="600" fill="#1f5e3f">ACTIVE</text>
-  <text x="380" y="349" text-anchor="middle" font-size="13" fill="#3f6b53">ptr 不变，但背后已是全新物理页 H1</text>
-
-  <text x="40" y="398" font-size="12" fill="#53607a">对上层（tensor / CUDA Graph）透明：data_ptr() 自始至终不变，因此 graph 无需重新捕获。</text>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="840" height="630" viewBox="0 0 840 630" role="img" aria-labelledby="title desc">
+<title id="title">TMS 暂停和恢复的资源与数据时序</title><desc id="desc">先同步和可选备份，再解除映射释放资源；恢复映射后需恢复或重建内容，最后才能继续执行。</desc>
+<defs><marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#667488"/></marker></defs>
+<rect width="840" height="630" rx="12" fill="#fff"/>
+<g font-family="system-ui,PingFang SC,Microsoft YaHei,sans-serif" fill="#293a50"><text x="26" y="33" font-size="20" fill="#293a50" font-weight="650">pause / resume：虚拟地址保留，内容按策略恢复</text><rect x="28" y="58" width="784" height="68" rx="10" fill="#e9f6ef" stroke="#72aa8d"/><text x="46" y="87" font-size="16" fill="#293a50" font-weight="650">ACTIVE</text><text x="46" y="112" font-size="13" fill="#293a50">ptr 已映射；读取内容前须确认数据有效</text><path d="M90 126V153" fill="none" stroke="#667488" stroke-width="1.6" marker-end="url(#a)"/><text x="117" y="148" font-size="14" fill="#293a50">先完成相关 GPU 工作，再执行 pause(tag)</text><rect x="130" y="161" width="682" height="90" rx="10" fill="#f8f9fc" stroke="#c5ccd7"/><text x="148" y="190" font-size="16" fill="#293a50" font-weight="650">① 可选备份 → ② Unmap → ③ Release</text><text x="148" y="215" font-size="13" fill="#293a50">按配置将有效内容复制到 CPU / 磁盘</text><text x="148" y="238" font-size="13" fill="#293a50">解除映射并释放物理资源；不释放虚拟地址预留</text><path d="M90 154V280" fill="none" stroke="#667488" stroke-width="1.6" marker-end="url(#a)"/><rect x="28" y="283" width="784" height="67" rx="10" fill="#fdf1e3" stroke="#d5aa73"/><text x="46" y="312" font-size="16" fill="#293a50" font-weight="650">PAUSED</text><text x="46" y="337" font-size="13" fill="#293a50">ptr 仍被保留，但不可由 Kernel 访问</text><path d="M90 350V379" fill="none" stroke="#667488" stroke-width="1.6" marker-end="url(#a)"/><text x="117" y="374" font-size="14" fill="#293a50">resume(tag)：先准备存储，再准备内容</text><rect x="130" y="387" width="682" height="91" rx="10" fill="#f8f9fc" stroke="#c5ccd7"/><text x="148" y="416" font-size="16" fill="#293a50" font-weight="650">① Create → ② Map 到原 ptr → ③ SetAccess</text><text x="148" y="441" font-size="13" fill="#293a50">有备份：拷回旧值；无备份：由上层重新加载 / 写入</text><text x="148" y="464" font-size="13" fill="#293a50">重建 KV cache 有效性信息，处理相关通信与执行依赖</text><path d="M90 380V506" fill="none" stroke="#667488" stroke-width="1.6" marker-end="url(#a)"/><rect x="28" y="509" width="784" height="67" rx="10" fill="#e9f6ef" stroke="#72aa8d"/><text x="46" y="538" font-size="16" fill="#293a50" font-weight="650">ACTIVE：恢复计算</text><text x="46" y="563" font-size="13" fill="#293a50">地址稳定只是条件之一；内容、形状布局与依赖满足后才可 replay</text><text x="28" y="609" font-size="13" fill="#293a50">恢复会重新申请物理资源，不要求取得原来的物理页。</text></g></svg>

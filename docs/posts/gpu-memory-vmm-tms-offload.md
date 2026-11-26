@@ -1,9 +1,9 @@
 ---
-title: GPU 显存管理：从 PyTorch Allocator、CUDA VMM 到 TMS 与 Selective Offload
-description: 理解 Tensor、Storage、Caching Allocator 与虚拟内存映射，分析 TMS pause/resume 与 Relax Selective CPU Offload 的生命周期和正确性边界。
+title: RL 训练状态卸载：从 TMS 到 Selective CPU Offload
+description: 围绕 Megatron Flat Buffer、优化器状态、CPU View 与 Dispatcher，分析 TMS 和 Selective CPU Offload 的恢复语义及正确性验证。
 sidebar: false
 aside: right
-outline: [2, 2]
+outline: [2, 3]
 pageClass: asb-reading
 editLink: false
 lastUpdated: false
@@ -11,114 +11,33 @@ lastUpdated: false
 
 <div class="asb-story-header">
   <div class="asb-story-breadcrumb"><a href="/posts/">← 返回文章列表</a></div>
-  <h1 id="gpu-memory-management" tabindex="-1">GPU 显存管理：从 PyTorch Allocator、CUDA VMM 到 TMS 与 Selective Offload</h1>
-  <p class="asb-story-subtitle">当 Tensor 的地址保持不变，背后的物理显存还在吗？</p>
-  <p class="asb-story-deck">CUDA Graph、训推共置和模型状态卸载都依赖正确区分地址、存储和内容。本文从一个 torch.empty 开始，沿 Caching Allocator、内存 Hook、VMM、Torch Memory Saver 与 Selective CPU Offload 的机制逐层展开。</p>
+  <h1 id="gpu-memory-management" tabindex="-1">RL 训练状态卸载：从 TMS 到 Selective CPU Offload</h1>
+  <p class="asb-story-subtitle">参数要保存，梯度可重建：训练状态如何安全地离开 GPU？</p>
+  <p class="asb-story-deck">从一次共置训练的 Sleep/Wake 出发，沿 Megatron 共享存储、优化器状态和权重同步路径，理解为什么显存卸载既需要底层机制，也需要训练语义。</p>
 </div>
 
-GPU 显存管理里有一个容易被忽略的事实：**Tensor 对象、虚拟地址、物理显存与数据内容不是同一个概念。** 只有把它们分开，才能解释为什么 `empty_cache()` 不能释放活跃 Tensor、为什么 CUDA VMM 可以保持地址不变，以及为什么 Pause/Resume 不一定能恢复旧值。
+一次 Rollout 结束后，训练 Actor 需要恢复参数和优化器继续更新；下一次 Rollout 开始前，它又要把显存让给推理引擎。参数、Adam 历史统计、梯度和临时激活有不同的生命周期，不能用一次“把所有 Tensor 搬到 CPU”概括。
 
-## 一、从 torch.empty 看 Tensor、Storage 和显存
+本文聚焦**训练 Actor 的状态管理**。Allocator、CUDA VMM、TMS 和 SGLang/vLLM 的完整调用链见[《GPU 显存管理全栈导读》](/posts/gpu-memory-full-stack)。
 
-```python
-import torch
+## 一、先确定卸载需要保留什么
 
-x = torch.empty((1024, 1024), device="cuda", dtype=torch.float32)
-print(x.shape, x.dtype, x.device)
-print(x.untyped_storage().nbytes())
-```
-
-一个 Tensor 包含 Shape、Stride、Dtype、Device 等元信息，其底层字节通过 Storage 关联的内存访问。普通 CUDA Tensor 在程序中通过 GPU 虚拟地址访问对应资源，而物理显存由设备驱动和分配器等层次管理。
-
-注意 `torch.empty()` 的“empty”不是指不占 GPU 显存，而是**不初始化其中的数值**。它仍然需要为所请求的数据规模提供合适的存储。
-
-
-<figure class="asb-figure">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大：Tensor Storage 虚拟地址和物理显存的对应关系"><img width="960" height="560" src="/diagrams/gpu-tensor-storage.svg" alt="Tensor Storage 虚拟地址和物理显存的对应关系" loading="lazy" /></button>
-  <figcaption>Tensor 元数据、共享 Storage、设备虚拟地址与物理分配应分层理解。</figcaption>
-</figure>
-
-## 二、PyTorch Caching Allocator：Allocated 与 Reserved
-
-PyTorch CUDA Caching Allocator 会复用已释放给分配器但尚未归还驱动的缓存块，以减少频繁的底层分配成本。因此，删除 Python 变量或释放 Tensor 引用，不一定立刻使 `nvidia-smi` 显示的占用下降。
-
-```python
-print(torch.cuda.memory_allocated())
-print(torch.cuda.memory_reserved())
-
-del x
-torch.cuda.empty_cache()
-```
-
-`memory_allocated()` 近似反映 PyTorch 当前活跃 Tensor 的分配量，`memory_reserved()` 则包含分配器已经向底层申请、尚由其管理的显存。**`empty_cache()` 不能把仍被活跃 Tensor 引用的 Storage 当成空闲缓存释放。**
-
-它也不等同于“把模型参数卸载到 CPU”，更不能作为训推共置场景中完整的 Sleep/Wake 机制。
-
-## 三、CUDA VMM：地址预留和物理映射可以分离
-
-CUDA 提供的 Virtual Memory Management API 允许应用显式管理虚拟地址区间、物理资源句柄、映射关系和访问权限。
-
-<figure class="asb-figure asb-figure--cover">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大 CUDA VMM 映射生命周期"><img width="960" height="650" src="/diagrams/gpu-vmm-mapping.svg" alt="CUDA VMM 从虚拟地址预留到物理映射与访问权限的关系" /></button>
-  <figcaption>虚拟地址预留、物理资源创建、映射和访问授权是不同的步骤。</figcaption>
-</figure>
-
-| CUDA Driver API | 职责 | 关键边界 |
+| 问题 | TMS 的 VMM 路径 | Selective CPU Offload |
 | --- | --- | --- |
-| `cuMemAddressReserve` | 预留虚拟地址范围 | 此时不代表已分配承载数据的物理显存 |
-| `cuMemCreate` | 创建物理资源分配句柄 | 句柄与虚拟地址是独立对象 |
-| `cuMemMap` | 将物理资源映射到指定地址范围 | 仍需设置相应访问权限 |
-| `cuMemSetAccess` | 配置设备访问权限 | 映射存在不等于所有设备都可访问 |
-| `cuMemUnmap` | 解除映射关系 | 不会自动保存原来的 Tensor 数据 |
-| `cuMemRelease` | 释放句柄引用 | 能否回收资源与映射及引用生命周期有关 |
-| `cuMemAddressFree` | 释放虚拟地址预留 | 在地址范围不再需要时执行 |
+| 如何释放设备资源 | 暂时解除受管分配的物理映射 | 按训练语义搬移状态，释放相应存储 |
+| 如何处理地址 | 保留受管虚拟地址，恢复时重新映射 | 不承诺重新分配后获得原设备地址 |
+| 如何保留内容 | 根据 region 的 CPU backup 等配置保存 | 显式保存参数和优化器状态，丢弃可重建内容 |
+| 谁判断哪些状态必须保存 | 上层选择 region、tag 与备份策略 | 训练框架依据 Buffer 与优化器语义选择 |
 
-这也回答了 CUDA Graph 常见问题：**Graph 记录的 Kernel 参数可能包含设备虚拟地址；地址稳定性有利于某些 Graph Replay 场景，但并不意味着原来的物理内存或数值内容仍然存在。**
+TMS 是第三方库，CUDA VMM 是底层接口。两者提供的地址管理能力，不会自动判断一个梯度是否已被消费，也不会替训练循环选择正确的暂停时刻。
 
-如果在取消映射后仍访问原地址，而尚未建立有效的新映射与访问权限，程序会遇到非法访问或其他未定义的执行问题。进行 Unmap / Release 前还必须保证依赖该内存的 GPU 工作已经完成。
+## 二、Sleep/Wake 必须位于安全边界
 
-## 四、Torch Memory Saver 的 Pause / Resume 保留了什么？
+卸载前需要停止新的访问，并完成当前依赖这些存储的计算与通信；恢复后需要确保映射、拷贝与必要的状态重建完成，再允许下一阶段读取。
 
-[Torch Memory Saver（TMS）](https://github.com/fzyzcjy/torch_memory_saver) 是第三方项目，并不是 PyTorch 内置的标准接口。它通过受管理的分配路径和底层虚拟内存机制，支持在 Pause 时释放部分物理显存资源、在 Resume 时重新建立内存映射，并尽量维持地址稳定。
+即使 TMS 维持了 `data_ptr()`，没有备份的数据仍需要重新生成；Selective 路径若改变了设备地址，则必须检查训练 CUDA Graph、通信注册和其他持有旧指针的组件。下面的 Storage 操作以 Relax 的 Megatron 集成为案例，依赖其 Buffer 所有权与阶段边界，不能直接套用到任意 Tensor。
 
-<figure class="asb-figure asb-figure--cover">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大 TMS Pause Resume 资源路径"><img width="960" height="620" src="/diagrams/gpu-tms-pause.svg" alt="TMS 虚拟地址保留、暂停解除映射、恢复内容与物理显存的关系" loading="lazy" /></button>
-  <figcaption>地址恢复与内容恢复必须分别讨论：Pause 不意味着原有 Tensor 数值已经被自动保存。</figcaption>
-</figure>
-
-### 重要区别：CPU Backup 并非默认语义
-
-对于需要在 Resume 后继续使用的模型权重或优化器状态，需要确认是否开启 CPU Backup 或其他可恢复机制；某些可重建的 KV Cache/临时 Buffer 则不需要保留原始数值。
-
-```python
-# 概念性示例；API 和 hook 设置以安装的 TMS 版本为准
-from torch_memory_saver import torch_memory_saver
-
-with torch_memory_saver.region(enable_cpu_backup=True):
-    weights = torch.full((1024,), 42, device="cuda")
-
-torch_memory_saver.pause()
-# 此时不要访问被 pause 的 GPU 数据
-torch_memory_saver.resume()
-
-assert weights[0].item() == 42
-```
-
-如果没有对应备份或其他重建机制，即使虚拟地址可以重新用于访问，也不应假定 Resume 后会看到 Pause 之前的值。
-
-### Hook 不等于 GPU 内存类型
-
-TMS 的部分接入方式使用 `LD_PRELOAD` 优先加载动态库，拦截受支持的分配/释放接口；一些版本也提供对 PyTorch 自定义 Allocator / Memory Pool 的接入。不同 Hook 方式的适用范围和兼容性并不一致。
-
-`LD_PRELOAD` 是动态链接器机制，**不是 CUDA VMM 的替代品**；并不是任何 CUDA 分配请求都一定经过同一套可预加载符号。
-
-
-<figure class="asb-figure">
-  <button class="asb-zoom-trigger" type="button" aria-label="放大：缓存分配器和内存分配 Hook 的接入边界"><img width="960" height="560" src="/diagrams/gpu-allocation-hook.svg" alt="缓存分配器和内存分配 Hook 的接入边界" loading="lazy" /></button>
-  <figcaption>Preload 拦截支持的底层符号；自定义分配器在另一层接入，覆盖范围取决于模式。</figcaption>
-</figure>
-
-## 五、训推共置为什么需要 Sleep / Wake？
+## 三、训推共置为什么需要 Sleep / Wake？
 
 在某些 RL Colocated 部署中，Trainer 与 Rollout 可能复用相同 GPU。训练更新需要模型参数、优化器状态和梯度缓冲，而推理采样希望获得足够空间存放 KV Cache 与推理工作区。反复销毁和重建完整训练进程会有较高成本，因此系统可能在训练与 Rollout 间执行 Sleep/Wake。
 
@@ -130,9 +49,9 @@ TMS 的部分接入方式使用 `LD_PRELOAD` 优先加载动态库，拦截受�
 
 并非所有这三类内存都应使用同一套备份策略。
 
-## 六、Selective CPU Offload：由训练语义选择保留状态
+## 四、Selective CPU Offload：由训练语义选择保留状态
 
-Relax 的 [Selective CPU Offload PR #85](https://github.com/redai-studio/Relax/pull/85) 提供了理解该问题的工程案例：不只在底层追踪哪些字节被分配，还尝试根据 Megatron 训练状态的语义，选择需要备份和可以重建的 Buffer。
+Relax 的 [Selective CPU Offload PR #85](https://github.com/redai-studio/Relax/pull/85) 提供了理解该问题的工程案例（[代码快照](https://github.com/redai-studio/Relax/blob/2b11c80d57cb283f6e968f9d892bee420d54dc01/relax/backends/megatron/weight_update/train_offload.py)）：不只在底层追踪哪些字节被分配，还尝试根据 Megatron 训练状态的语义，选择需要备份和可以重建的 Buffer。
 
 <figure class="asb-figure asb-figure--cover">
   <button class="asb-zoom-trigger" type="button" aria-label="放大 Selective CPU Offload 数据路径"><img width="960" height="705" src="/diagrams/gpu-selective-offload.svg" alt="Selective Offload 将必须保留的状态备份到 CPU，并释放可重建状态" loading="lazy" /></button>
@@ -151,7 +70,7 @@ Relax 的 [Selective CPU Offload PR #85](https://github.com/redai-studio/Relax/p
 
 ### 为什么要特别处理 Flat Buffer？
 
-Megatron 的多个 Parameter 可能通过 View 共享一个连续 Param Buffer 的 Storage。如果逐个重绑 `param.data`，可能破坏原有的 Shard/Flat Buffer 假设。更稳定的处理策略是以共享底层存储为单位执行备份与恢复。
+Megatron 的多个 Parameter 可能通过 View 共享一个连续 Param Buffer 的 Storage。如果逐个重绑 `param.data`，可能破坏原有的 Shard/Flat Buffer 假设。更稳定的处理策略是以共享底层存储为单位执行备份与恢复，并同时维护每个参数在连续缓冲区中的偏移。
 
 从概念上说，卸载步骤为：
 
@@ -164,6 +83,11 @@ saved_size = flat_param_buffer.untyped_storage().nbytes()
 
 恢复时也必须把值送回正确的存储位置，并确保任何异步 H2D 已完成。仅保存一个 CPU View 的指针，并不能让所有已被清空的设备 Tensor 自动恢复正常。
 
+<figure class="asb-figure">
+  <button class="asb-zoom-trigger" type="button" aria-label="放大：Flat Buffer 和 CPU 参数视图的对应关系"><img width="960" height="450" src="/diagrams/gpu-flat-buffer-views.svg" alt="多个 Parameter 共享 GPU Flat Buffer，CPU backup 中的对应切片提供卸载期间的参数视图" loading="lazy" /></button>
+  <figcaption>备份按 Flat Buffer 复制，参数视图通过相同偏移关联 CPU 切片；恢复时保持参数与共享存储的关系。</figcaption>
+</figure>
+
 ### Pinned Memory 与同步代价
 
 Pinned Host Memory 可在适用的设备和数据路径上改善 H2D/D2H 传输行为，但它有主机内存占用与锁页成本；`non_blocking=True` 的调用语义也不等于数据已经抵达 GPU。必须通过事件或合适的同步机制确保后续计算不会使用未完成的拷贝。
@@ -175,7 +99,8 @@ Pinned Host Memory 可在适用的设备和数据路径上改善 H2D/D2H 传输�
 param._relax_cpu_offload_data = cpu_data[start:end].view(param.shape)
  
 # weight_update/common.py
-if getattr(x, "_relax_cpu_offload_data", None) is not None         and x.storage().size() == 0:
+if (getattr(x, "_relax_cpu_offload_data", None) is not None
+        and x.storage().size() == 0):
     return x._relax_cpu_offload_data
 ```
 
@@ -198,6 +123,12 @@ buffer.param_data.copy_(buffer.param_data.cpu_data,
 ### Dispatcher 引用与显存回收
 
 DeepEP/HybridEP Dispatcher 缓存中的 token_probs、dispatched_probs 等 Tensor 可能携带 grad_fn，进而引用 Autograd Graph 和 Activation。若只是释放 Gradient Buffer，这些 Python 引用仍可能阻止显存回收。PR 遍历当前、保存的训练和推理 dispatcher，以及关联通信管理器，清理已知缓存字段。
+
+### 优化器已有 CPU Offload 时，避免重复管理
+
+案例中的 `_skip_optimizer` 检查 Megatron 的 `optimizer_cpu_offload`。若 HybridDeviceOptimizer 已经负责 CPU/GPU 放置，Selective 策略仍处理模型 Flat Buffer，但跳过手动搬移优化器状态，避免破坏优化器自身的设备与调度约束。
+
+普通路径则遍历分布式优化器（包括 ChainedOptimizer 中的子优化器），保存 FP32 master parameters，以及已经创建的 Adam `exp_avg`、`exp_avg_sq`。这些状态可能延迟初始化，因此验证必须覆盖第一次更新前后，而不能只测试模型刚加载时的卸载。
 
 ### Actor、策略选择与调用链
 
@@ -229,7 +160,7 @@ else:
 
 实际代码还有 TMS 初始化失败时的 warning/fallback，以及 offload_train=False 时的 no-op。启动器在 --selective-offload 下不再为训练 Actor 配置 TMS 的 LD_PRELOAD。
 
-## 七、TMS 与 Selective Offload 各有什么限制？
+## 五、TMS 与 Selective Offload 各有什么限制？
 
 | 维度 | TMS 类方案 | Selective Training-State Offload |
 | --- | --- | --- |
@@ -241,17 +172,36 @@ else:
 
 特别需要注意 `expandable_segments`：它可能使用 CUDA 虚拟内存相关机制缓解动态形状下的碎片问题；某些 TMS 预加载 Hook 与这种分配路径的组合存在兼容限制。**这不是“VMM 与 expandable_segments 在原理上不兼容”**，而是特定实现对分配路径追踪与资源所有权的支持问题。
 
-## 八、源码阅读路线与性能验证
+## 六、沿调用链验证正确性与性能
 
-建议依次阅读 PyTorch CUDA Memory 文档、TMS README，再沿 Relax PR #85 的入口追踪：Actor 的 `sleep()` / `wake_up()` → TrainStateOffloader 的 `offload()` / `reload()` → Megatron Param/Grad Buffer → 权重同步期间如何访问 CPU Backup。
+源码阅读顺序可以从 Actor 的 `sleep()` / `wake_up()` 开始，进入 TrainStateOffloader 的 `offload()` / `reload()`，再追到 Param/Grad Buffer、优化器状态和权重同步的 CPU Backup 分支。这样先看阶段边界，再看具体字节如何搬移。
 
-需要分开测量 **显存释放量、Sleep 时间、Wake 时间、CPU RAM/Pinned RAM 占用、同步开销以及端到端 RL 吞吐**。只比较 GPU Memory Reserved 不足以证明卸载方案更优；即使单次 Sleep/Wake 更快，完整训练循环也可能仍受其他阶段限制。
+### 正确性：单轮恢复不够，还要连续训练
 
-## 九、总结：地址、内存和状态是三件不同的事
+| 验证点 | 对照方式 | 能发现的问题 |
+| --- | --- | --- |
+| 参数与优化器旧值 | offload 前保存小规模参考，reload 后逐项对比 | 参数恢复但 master weights 或 Adam 状态丢失 |
+| Buffer 别名关系 | 检查参数 View 的偏移、形状与共享存储关系 | 数值暂时相同，但后续更新写入错误位置 |
+| 梯度生命周期 | 在完成 optimizer step、允许清零的边界执行卸载 | 梯度累积尚未结束就丢弃数据 |
+| Sleep 期间的权重读取 | 从 CPU View 读取并与参考参数比较 | 读到零 Storage 或上一轮备份 |
+| 多轮恢复 | 固定输入和随机状态，对比不卸载与卸载后的连续更新 | 第二轮起 CPU View 过期、状态漂移或持续泄漏 |
+| 异步执行与通信 | 覆盖实际 H2D/D2H、通信和 Graph 配置 | 拷贝未完成就读取，或组件仍持有旧地址 |
+
+比较训练结果时采用适合精度与算子的误差标准；存在随机性或非确定性算子时，不应把位级一致作为所有配置的通用要求。
+
+### 性能：观察完整周期和资源峰值
+
+固定模型、并行度、batch、序列长度、生成数量和权重同步方式，分别记录显存释放量、Sleep/Wake 时间、CPU RAM/Pinned RAM 占用、权重更新峰值以及端到端 step 时间。
+
+对于备份总量为 B 的状态，仅传输时间就受 D2H 与 H2D 有效带宽限制；此外还有同步、分配与缓存清理成本。Selective 的潜在收益来自少搬可重建数据，是否胜出取决于实际状态组成与主机设备链路，不能从“释放更多显存”直接推断。
+
+Pinned backup 的持久复用可减少反复分配和锁页成本，也会长期占用主机内存。还应检查多轮循环的 RSS 是否稳定，以及权重更新和下一阶段加载是否造成瞬时峰值。单次 API 的返回时间、`memory_reserved()` 或 `nvidia-smi` 截图，都不足以单独证明方案更快。
+
+## 七、把机制与训练语义接起来
 
 PyTorch Caching Allocator 主要解决分配效率和缓存复用；CUDA VMM 使虚拟地址与物理资源的映射能够被更细粒度地控制；TMS 探索使用这一能力实现地址稳定的 Pause/Resume；Selective Offload 则在应用层明确哪些训练状态值得备份、哪些可以重建。
 
-它们共同说明：**安全地释放显存，不等于仅仅让某个指针继续存在。** 数据内容、执行依赖、Buffer 所有权和恢复时序都必须被正确管理。
+安全卸载需要同时管理数据内容、执行依赖、Buffer 所有权和恢复时序。需要回看底层映射与引擎接口时，可沿[全栈导读](/posts/gpu-memory-full-stack)中的分层调用链继续阅读。
 
 ## 参考资料
 

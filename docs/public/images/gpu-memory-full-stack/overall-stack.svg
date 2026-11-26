@@ -1,47 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="780" height="560" viewBox="0 0 780 560" font-family="-apple-system,Segoe UI,Helvetica,Arial,sans-serif">
-  <defs>
-    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
-      <path d="M0,0 L8,3 L0,6 Z" fill="#5b6472"/>
-    </marker>
-    <marker id="arrowDashed" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
-      <path d="M0,0 L8,3 L0,6 Z" fill="#9aa4b2"/>
-    </marker>
-  </defs>
-  <rect x="0" y="0" width="780" height="560" fill="#ffffff"/>
-
-  <!-- layer boxes -->
-  <g>
-    <rect x="110" y="24"  width="420" height="72" rx="10" fill="#eef2ff" stroke="#7083d6"/>
-    <text x="320" y="52"  text-anchor="middle" font-size="16" font-weight="600" fill="#2b3a67">④ RL 训练框架（slime / verl）</text>
-    <text x="320" y="76"  text-anchor="middle" font-size="12.5" fill="#53607a">offload/release · onload/resume · update_weights</text>
-
-    <rect x="110" y="134" width="420" height="72" rx="10" fill="#e9f6ef" stroke="#4fa877"/>
-    <text x="320" y="162" text-anchor="middle" font-size="16" font-weight="600" fill="#1f5e3f">③ 推理框架（SGLang / vLLM）</text>
-    <text x="320" y="186" text-anchor="middle" font-size="12.5" fill="#3f6b53">release/resume_memory_occupation · sleep/wake_up</text>
-
-    <rect x="110" y="244" width="420" height="72" rx="10" fill="#fdf1e3" stroke="#d79a52"/>
-    <text x="320" y="272" text-anchor="middle" font-size="16" font-weight="600" fill="#8a5a1b">② torch_memory_saver</text>
-    <text x="320" y="296" text-anchor="middle" font-size="12.5" fill="#8a6a40">region / pause / resume → malloc / pause / resume</text>
-
-    <rect x="110" y="354" width="420" height="72" rx="10" fill="#f0eefc" stroke="#9179c9"/>
-    <text x="320" y="382" text-anchor="middle" font-size="16" font-weight="600" fill="#4b3a86">① PyTorch 可插拔分配器</text>
-    <text x="320" y="406" text-anchor="middle" font-size="12.5" fill="#5f5192">CUDAPluggableAllocator + MemPool + use_mem_pool</text>
-
-    <rect x="110" y="464" width="420" height="72" rx="10" fill="#edf0f2" stroke="#8a95a1"/>
-    <text x="320" y="492" text-anchor="middle" font-size="16" font-weight="600" fill="#3a434e">CUDA Driver（VMM）</text>
-    <text x="320" y="516" text-anchor="middle" font-size="12.5" fill="#555f6b">cuMemCreate / cuMemMap / cuMemUnmap / cuMemRelease</text>
-  </g>
-
-  <!-- down arrows -->
-  <g stroke="#5b6472" stroke-width="1.6">
-    <line x1="320" y1="96"  x2="320" y2="132" marker-end="url(#arrow)"/>
-    <line x1="320" y1="206" x2="320" y2="242" marker-end="url(#arrow)"/>
-    <line x1="320" y1="316" x2="320" y2="352" marker-end="url(#arrow)"/>
-    <line x1="320" y1="426" x2="320" y2="462" marker-end="url(#arrow)"/>
-  </g>
-  <text x="336" y="120" font-size="11.5" fill="#53607a">按 tag 区分 weights / kv_cache</text>
-
-  <!-- feedback dashed arrow: VMM -> TMS -->
-  <path d="M530 500 C 690 470, 690 300, 560 282" fill="none" stroke="#9aa4b2" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#arrowDashed)"/>
-  <text x="602" y="392" text-anchor="middle" font-size="11.5" fill="#6b7686" transform="rotate(90 602 392)">物理显存可释放，虚拟地址保持不变</text>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="650" viewBox="0 0 900 650" role="img" aria-labelledby="title desc">
+<title id="title">显存管理的两条调用路线</title><desc id="desc">SGLang 经由 TMS，vLLM 使用自身 CuMemAllocator；两条路线分别绑定分配回调并使用 CUDA VMM。</desc>
+<defs><marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#667488"/></marker></defs>
+<rect width="900" height="650" rx="12" fill="#fff"/>
+<g font-family="system-ui,PingFang SC,Microsoft YaHei,sans-serif" fill="#293a50"><text x="28" y="34" font-size="21" fill="#293a50" font-weight="650">从 RL 编排到 CUDA VMM：两条实现路线</text><rect x="170" y="58" width="560" height="78" rx="10" fill="#eef2ff" stroke="#8b9dc8"/><text x="188" y="87" font-size="16" fill="#293a50" font-weight="650">RL 框架：slime / verl</text><text x="188" y="112" font-size="13" fill="#293a50">按阶段调用 release / sleep、resume / wake、update_weights</text><path d="M450 136V158H240V180" fill="none" stroke="#667488" stroke-width="1.6" marker-end="url(#a)"/><path d="M450 158H660V180" fill="none" stroke="#667488" stroke-width="1.6" marker-end="url(#a)"/><rect x="45" y="182" width="390" height="80" rx="10" fill="#e9f6ef" stroke="#72aa8d"/><text x="63" y="211" font-size="16" fill="#293a50" font-weight="650">SGLang</text><text x="63" y="236" font-size="13" fill="#293a50">release / resume_memory_occupation</text><rect x="465" y="182" width="390" height="80" rx="10" fill="#f1edfc" stroke="#a38bc6"/><text x="483" y="211" font-size="16" fill="#293a50" font-weight="650">vLLM</text><text x="483" y="236" font-size="13" fill="#293a50">sleep / wake_up</text><path d="M240 262V297" fill="none" stroke="#667488" stroke-width="1.6" marker-end="url(#a)"/><path d="M660 262V297" fill="none" stroke="#667488" stroke-width="1.6" marker-end="url(#a)"/><rect x="45" y="299" width="390" height="96" rx="10" fill="#fdf1e3" stroke="#d5aa73"/><text x="63" y="328" font-size="16" fill="#293a50" font-weight="650">TMS adapter → torch_memory_saver</text><text x="63" y="353" font-size="13" fill="#293a50">region / pause / resume</text><text x="63" y="376" font-size="13" fill="#293a50">将分配登记到 TMS 管理范围</text><rect x="465" y="299" width="390" height="96" rx="10" fill="#f1edfc" stroke="#a38bc6"/><text x="483" y="328" font-size="16" fill="#293a50" font-weight="650">CuMemAllocator（vLLM 自身实现）</text><text x="483" y="353" font-size="13" fill="#293a50">use_memory_pool / sleep / wake_up</text><text x="483" y="376" font-size="13" fill="#293a50">不经过 torch_memory_saver</text><path d="M240 395V430" fill="none" stroke="#667488" stroke-width="1.6" marker-end="url(#a)"/><path d="M660 395V430" fill="none" stroke="#667488" stroke-width="1.6" marker-end="url(#a)"/><rect x="45" y="432" width="390" height="78" rx="10" fill="#edf4fb" stroke="#8eaac6"/><text x="63" y="461" font-size="15" fill="#293a50" font-weight="650">PyTorch 自定义分配路径</text><text x="63" y="486" font-size="13" fill="#293a50">torch 模式：MemPool → TMS malloc/free</text><rect x="465" y="432" width="390" height="78" rx="10" fill="#edf4fb" stroke="#8eaac6"/><text x="483" y="461" font-size="15" fill="#293a50" font-weight="650">PyTorch 自定义分配路径</text><text x="483" y="486" font-size="13" fill="#293a50">MemPool → vLLM 的分配/释放回调</text><path d="M240 510V534H450V554" fill="none" stroke="#667488" stroke-width="1.6" marker-end="url(#a)"/><path d="M660 510V534H450" fill="none" stroke="#667488" stroke-width="1.6" marker-end="url(#a)"/><rect x="170" y="556" width="560" height="68" rx="10" fill="#edf0f2" stroke="#98a3af"/><text x="188" y="585" font-size="16" fill="#293a50" font-weight="650">CUDA Driver VMM</text><text x="188" y="610" font-size="13" fill="#293a50">预留地址 · 创建物理资源 · 映射/解除映射 · 配置访问权限</text><text x="45" y="644" font-size="12" fill="#293a50">图中展开 torch 模式的分配入口；Preload 是另一种 Hook 接入方式。</text></g></svg>

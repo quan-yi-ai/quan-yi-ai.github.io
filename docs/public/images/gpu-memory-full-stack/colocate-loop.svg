@@ -1,29 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="720" height="440" viewBox="0 0 720 440" font-family="-apple-system,Segoe UI,Helvetica,Arial,sans-serif">
-  <defs><marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#5b6472"/></marker></defs>
-  <rect width="720" height="440" fill="#ffffff"/>
-  <text x="24" y="32" font-size="15" font-weight="600" fill="#2b3a67">colocate RL 一轮：训练与推理共享显存，靠 pause/resume 轮换</text>
-
-  <rect x="250" y="56" width="220" height="56" rx="10" fill="#e9f6ef" stroke="#4fa877"/>
-  <text x="360" y="82" text-anchor="middle" font-size="13.5" font-weight="600" fill="#1f5e3f">rollout 生成样本</text>
-  <text x="360" y="100" text-anchor="middle" font-size="11.5" fill="#3f6b53">推理引擎占用 权重 + KV cache</text>
-
-  <rect x="470" y="150" width="230" height="56" rx="10" fill="#fdf1e3" stroke="#d79a52"/>
-  <text x="585" y="176" text-anchor="middle" font-size="13.5" font-weight="600" fill="#8a5a1b">release / sleep</text>
-  <text x="585" y="194" text-anchor="middle" font-size="11.5" fill="#8a6a40">pause → cuMemUnmap/Release，显存让出</text>
-
-  <rect x="250" y="244" width="220" height="56" rx="10" fill="#eef2ff" stroke="#7083d6"/>
-  <text x="360" y="270" text-anchor="middle" font-size="13.5" font-weight="600" fill="#2b3a67">训练 fwd/bwd/optim</text>
-  <text x="360" y="288" text-anchor="middle" font-size="11.5" fill="#53607a">使用让出的显存</text>
-
-  <rect x="20" y="150" width="230" height="56" rx="10" fill="#f0eefc" stroke="#9179c9"/>
-  <text x="135" y="170" text-anchor="middle" font-size="13.5" font-weight="600" fill="#4b3a86">resume + update_weights</text>
-  <text x="135" y="188" text-anchor="middle" font-size="11.5" fill="#5f5192">cuMemCreate/Map 显存要回，写入新权重</text>
-
-  <path d="M470 90 C 560 100, 585 120, 585 148" fill="none" stroke="#5b6472" stroke-width="1.8" marker-end="url(#a)"/>
-  <path d="M520 206 C 500 230, 470 244, 470 258" fill="none" stroke="#5b6472" stroke-width="1.8" marker-end="url(#a)"/>
-  <path d="M250 272 C 170 268, 135 232, 135 208" fill="none" stroke="#5b6472" stroke-width="1.8" marker-end="url(#a)"/>
-  <path d="M135 150 C 135 116, 200 92, 248 86" fill="none" stroke="#5b6472" stroke-width="1.8" marker-end="url(#a)"/>
-
-  <text x="360" y="360" text-anchor="middle" font-size="12.5" fill="#53607a">地址稳定 → CUDA Graph 无需重新捕获；按 tag 分别处理 weights 与 kv_cache</text>
-  <text x="360" y="384" text-anchor="middle" font-size="11.5" fill="#99a1ad">sleep_level=1 仅放 KV cache；sleep_level=2 连权重一并释放</text>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="550" viewBox="0 0 900 550" role="img" aria-labelledby="title desc">
+<title id="title">共置训练推理的显存轮换</title><desc id="desc">生成结束后释放推理资源，训练完成后释放相应训练资源并按权重和缓存的顺序恢复推理。</desc>
+<defs><marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#667488"/></marker></defs>
+<rect width="900" height="550" rx="12" fill="#fff"/>
+<g font-family="system-ui,PingFang SC,Microsoft YaHei,sans-serif" fill="#293a50"><text x="26" y="34" font-size="20" fill="#293a50" font-weight="650">共置 RL 的阶段轮换：以释放推理权重与 KV cache 为例</text><rect x="255" y="65" width="390" height="73" rx="10" fill="#e9f6ef" stroke="#72aa8d"/><text x="273" y="94" font-size="16" fill="#293a50" font-weight="650">Rollout 生成样本</text><text x="273" y="119" font-size="13" fill="#293a50">推理权重 + KV cache + 工作区</text><rect x="480" y="193" width="390" height="92" rx="10" fill="#fdf1e3" stroke="#d5aa73"/><text x="498" y="222" font-size="16" fill="#293a50" font-weight="650">停止生成 → release / sleep</text><text x="498" y="247" font-size="13" fill="#293a50">结束相关访问，使 KV cache 失效</text><text x="498" y="270" font-size="13" fill="#293a50">按引擎策略释放权重和 KV cache</text><rect x="255" y="340" width="390" height="73" rx="10" fill="#eef2ff" stroke="#8b9dc8"/><text x="273" y="369" font-size="16" fill="#293a50" font-weight="650">训练 fwd / bwd / optimizer step</text><text x="273" y="394" font-size="13" fill="#293a50">恢复所需训练状态，再使用可用显存</text><rect x="30" y="193" width="390" height="92" rx="10" fill="#f1edfc" stroke="#a38bc6"/><text x="48" y="222" font-size="16" fill="#293a50" font-weight="650">让出训练资源 → 恢复推理</text><text x="48" y="247" font-size="13" fill="#293a50">恢复 weights 存储 → 写入新权重</text><text x="48" y="270" font-size="13" fill="#293a50">再恢复 KV cache → 允许新一轮生成</text><path d="M645 103C750 103 760 145 760 190" fill="none" stroke="#667488" stroke-width="1.6" marker-end="url(#a)"/><path d="M675 285V312H570V337" fill="none" stroke="#667488" stroke-width="1.6" marker-end="url(#a)"/><path d="M255 376H210V288" fill="none" stroke="#667488" stroke-width="1.6" marker-end="url(#a)"/><path d="M155 193V103H252" fill="none" stroke="#667488" stroke-width="1.6" marker-end="url(#a)"/><text x="30" y="465" font-size="14" fill="#293a50">训练状态如何备份、丢弃和重建，由 Trainer 的卸载策略决定。</text><text x="30" y="492" font-size="14" fill="#293a50">sleep level 的含义取决于引擎与适配路径；不能把某一路径的 level 1 当作通用定义。</text><text x="30" y="519" font-size="14" fill="#293a50">地址稳定有助于复用 Graph；映射、内容、布局与执行依赖仍须有效。</text></g></svg>
