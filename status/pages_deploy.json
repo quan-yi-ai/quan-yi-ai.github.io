@@ -73,7 +73,7 @@
       "gpu-memory-vmm-tms-offload": {
         "status": 200,
         "article_header": true,
-        "figures": 5
+        "figures": 2
       },
       "pytorch-compiler-illustrated": {
         "status": 200,
@@ -103,8 +103,8 @@
     },
     "migrated_articles_all_ok": true
   },
-  "run_id": "45848077053",
-  "source_sha": "e94da032242d509bae6917e8b3a6983ac91100b6",
+  "run_id": "45851556694",
+  "source_sha": "f6a0744015606809bd3a7ab92b91c12e884d6d65",
   "build": "success",
   "deploy": "success",
   "result": "success"

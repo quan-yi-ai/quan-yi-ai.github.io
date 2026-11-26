@@ -7,6 +7,7 @@
     ],
     "gpu-memory-full-stack": [
       "/images/gpu-memory-full-stack/overall-stack.svg",
+      "/diagrams/gpu-tensor-storage.svg",
       "/images/gpu-memory-full-stack/block-segment.svg",
       "/images/gpu-memory-full-stack/tms-state-machine.svg",
       "/images/gpu-memory-full-stack/pause-resume-sequence.svg",
@@ -14,11 +15,8 @@
       "/images/gpu-memory-full-stack/colocate-loop.svg"
     ],
     "gpu-memory-vmm-tms-offload": [
-      "/diagrams/gpu-tensor-storage.svg",
-      "/diagrams/gpu-vmm-mapping.svg",
-      "/diagrams/gpu-tms-pause.svg",
-      "/diagrams/gpu-allocation-hook.svg",
-      "/diagrams/gpu-selective-offload.svg"
+      "/diagrams/gpu-selective-offload.svg",
+      "/diagrams/gpu-flat-buffer-views.svg"
     ],
     "minicpmo-45-omni-inference": [
       "/images/figures/minicpmo-45-omni-inference-01.png",
@@ -120,8 +118,12 @@
       "bytes": 205950
     },
     "/images/gpu-memory-full-stack/overall-stack.svg": {
-      "sha256": "6bff2c906f4cd37e506f21471c9fe64134c51950733c29d6a442fdc2adcaabc0",
-      "bytes": 3275
+      "sha256": "819e0282e1ab498c92e541a872ca31528965c69288df8c9f31ae64fc9a7089f8",
+      "bytes": 4103
+    },
+    "/diagrams/gpu-tensor-storage.svg": {
+      "sha256": "cc573b408265c83b570d603f1a4cce1f5557a41d67f14e05862a1a835c29d444",
+      "bytes": 2817
     },
     "/images/gpu-memory-full-stack/block-segment.svg": {
       "sha256": "c0349c70d7ea7140810692e92ded02eae17be6372fad1484c9ce984ece4e8d3a",
@@ -132,36 +134,24 @@
       "bytes": 1838
     },
     "/images/gpu-memory-full-stack/pause-resume-sequence.svg": {
-      "sha256": "56527f23ec4de5c7e373a96d8d0fd079a9723f86a8112cfc34890c6d93ca73d1",
-      "bytes": 2827
+      "sha256": "ac287a95bdd1a9989b7f7ec0d4f799e8e8e5c43622f35a579b399fe8fbc275d2",
+      "bytes": 3261
     },
     "/images/gpu-memory-full-stack/engine-two-routes.svg": {
       "sha256": "6cea41e390d814661170bf67f6ddf590023153297073387cf02561f4bba9ad63",
       "bytes": 2017
     },
     "/images/gpu-memory-full-stack/colocate-loop.svg": {
-      "sha256": "b6b0bd8a9b622976960598bcee55b322562c9722cb30a3dc2eb6bc053d4debea",
-      "bytes": 2654
-    },
-    "/diagrams/gpu-tensor-storage.svg": {
-      "sha256": "cc573b408265c83b570d603f1a4cce1f5557a41d67f14e05862a1a835c29d444",
-      "bytes": 2817
-    },
-    "/diagrams/gpu-vmm-mapping.svg": {
-      "sha256": "847f031165a866d84f40f86f8163fd1e2c3354c180e7ec23fb4efc61b5f3a678",
-      "bytes": 3596
-    },
-    "/diagrams/gpu-tms-pause.svg": {
-      "sha256": "6a0623456622126c544ccdc95eb9e15db3a2ec0473ff15e48446a7f41a4992f3",
-      "bytes": 3441
-    },
-    "/diagrams/gpu-allocation-hook.svg": {
-      "sha256": "132f9ae148dd8d94b481523be611dbb16a9678fe37e633da699e9cab392a237f",
-      "bytes": 2830
+      "sha256": "216cdd2d6256737c31482da295877a515508ab8a38df390530bf51efa9f5f1de",
+      "bytes": 2995
     },
     "/diagrams/gpu-selective-offload.svg": {
       "sha256": "6b6da373a8a6e38caf255f57f61ecf62de396508cdacc947b7397d55c0475bb5",
       "bytes": 3329
+    },
+    "/diagrams/gpu-flat-buffer-views.svg": {
+      "sha256": "ddeff93378ea4a708ee8ea1942af14259f9c0ae18283d051cd18630788539770",
+      "bytes": 2922
     },
     "/images/figures/minicpmo-45-omni-inference-01.png": {
       "sha256": "b71647636efe4cf2dc39ea780cbfc5859c73065997bb70defcfb8b76566e1636",
@@ -408,82 +398,80 @@
       "bytes": 3991
     }
   },
-  "originals": 23,
+  "originals": 20,
   "errors": [],
   "live_images": [
-    "/images/gpu-memory-full-stack/tms-state-machine.svg",
     "/images/gpu-memory-full-stack/block-segment.svg",
-    "/images/gpu-memory-full-stack/pause-resume-sequence.svg",
     "/images/gpu-memory-full-stack/overall-stack.svg",
-    "/images/figures/agentic-rl-infrastructure-01.png",
-    "/images/gpu-memory-full-stack/engine-two-routes.svg",
     "/diagrams/agentic-tool-loop.svg",
+    "/images/gpu-memory-full-stack/tms-state-machine.svg",
     "/diagrams/gpu-tensor-storage.svg",
-    "/images/gpu-memory-full-stack/colocate-loop.svg",
-    "/diagrams/gpu-vmm-mapping.svg",
-    "/diagrams/gpu-tms-pause.svg",
-    "/diagrams/gpu-allocation-hook.svg",
+    "/images/figures/agentic-rl-infrastructure-01.png",
+    "/images/gpu-memory-full-stack/pause-resume-sequence.svg",
     "/diagrams/gpu-selective-offload.svg",
+    "/images/gpu-memory-full-stack/engine-two-routes.svg",
+    "/images/gpu-memory-full-stack/colocate-loop.svg",
+    "/diagrams/gpu-flat-buffer-views.svg",
     "/diagrams/minicpm-tdm.svg",
-    "/diagrams/minicpm-stack.svg",
-    "/diagrams/minicpm-three-stage.svg",
     "/images/figures/minicpmo-45-omni-inference-01.png",
     "/diagrams/multimodal-benchmark-stages.svg",
+    "/diagrams/minicpm-stack.svg",
     "/diagrams/python-event-loop-flow.svg",
     "/diagrams/python-concurrency-comparison.svg",
-    "/diagrams/python-structured-concurrency.svg",
-    "/diagrams/python-decorator-closure.svg",
-    "/diagrams/python-context-lifecycle.svg",
+    "/diagrams/minicpm-three-stage.svg",
     "/diagrams/python-gil-execution.svg",
+    "/diagrams/python-decorator-closure.svg",
+    "/diagrams/python-structured-concurrency.svg",
     "/diagrams/python-runtime-protocols.svg",
-    "/diagrams/compiler-fusion.svg",
+    "/diagrams/python-context-lifecycle.svg",
     "/diagrams/compiler-stack.svg",
-    "/diagrams/ray-task-actor.svg",
+    "/diagrams/compiler-fusion.svg",
     "/diagrams/ray-object-dag.svg",
     "/diagrams/ray-cluster-architecture.svg",
-    "/images/figures/pytorch-compiler-illustrated-01.jpg",
-    "/images/figures/ray-distributed-framework-03.png",
     "/images/figures/ray-distributed-framework-04.png",
+    "/diagrams/ray-task-actor.svg",
     "/diagrams/ray-vllm-boundary.svg",
-    "/images/figures/ray-distributed-framework-05.png",
+    "/images/figures/ray-distributed-framework-03.png",
     "/diagrams/rl-posttraining-flow.svg",
+    "/images/figures/pytorch-compiler-illustrated-01.jpg",
+    "/images/figures/ray-distributed-framework-05.png",
+    "/diagrams/rlkernel-verification.svg",
     "/images/figures/rl-posttraining-frameworks-01.png",
     "/images/figures/rl-posttraining-frameworks-03.png",
-    "/images/figures/rl-posttraining-frameworks-04.png",
-    "/diagrams/rlinf-architecture.svg",
     "/diagrams/rlinf-weight-sync.svg",
+    "/diagrams/rlinf-architecture.svg",
     "/diagrams/sglang-startup-stages.svg",
-    "/diagrams/sglang-gpu-budget.svg",
-    "/diagrams/rlkernel-verification.svg",
     "/diagrams/speculative-verify.svg",
+    "/diagrams/sglang-gpu-budget.svg",
     "/diagrams/speculative-tradeoff.svg",
-    "/images/figures/speculative-decoding-guide-01.jpg",
     "/diagrams/speculative-mtp-depth.svg",
+    "/images/figures/speculative-decoding-guide-01.jpg",
     "/images/figures/speculative-decoding-guide-02.png",
     "/diagrams/speculative-eagle-shift.svg",
+    "/images/figures/rl-posttraining-frameworks-04.png",
     "/diagrams/transferqueue-rearchitecture.svg",
     "/diagrams/tq-figure-1.svg",
-    "/images/figures/speculative-decoding-guide-04.png",
-    "/images/figures/speculative-decoding-guide-06.png",
     "/diagrams/tq-sample-lifecycle.svg",
+    "/images/figures/speculative-decoding-guide-06.png",
     "/images/figures/transferqueue-01.png",
-    "/diagrams/tq-put-get-sequence.svg",
+    "/images/figures/speculative-decoding-guide-04.png",
     "/images/figures/transferqueue-02.png",
-    "/images/figures/transferqueue-03.png",
     "/diagrams/tq-storage-routing.svg",
+    "/images/figures/transferqueue-03.png",
+    "/diagrams/tq-put-get-sequence.svg",
     "/diagrams/tq-figure-4.svg",
-    "/diagrams/tq-figure-7.svg",
     "/diagrams/tq-backend-paths.svg",
+    "/diagrams/tq-figure-7.svg",
     "/diagrams/tq-memory-path.svg",
-    "/images/figures/transferqueue-05.png",
     "/diagrams/parallel-overview.svg",
     "/diagrams/parallel-8gpu-layout.svg",
     "/images/parallel/figure-1.svg",
     "/diagrams/tp-attention-heads.svg",
-    "/diagrams/ring-vs-tree-attention.svg",
+    "/diagrams/tp-cp-shapes.svg",
     "/diagrams/online-softmax.svg",
     "/images/parallel/figure-4.svg",
     "/images/parallel/figure-5.svg",
-    "/diagrams/tp-cp-shapes.svg"
+    "/diagrams/ring-vs-tree-attention.svg",
+    "/images/figures/transferqueue-05.png"
   ]
 }
