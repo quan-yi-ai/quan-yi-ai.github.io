@@ -103,8 +103,8 @@
     },
     "migrated_articles_all_ok": true
   },
-  "run_id": "45851556694",
-  "source_sha": "f6a0744015606809bd3a7ab92b91c12e884d6d65",
+  "run_id": "45852030092",
+  "source_sha": "0d20e2441419fd8a5255fc6c263b649e7fb55cb4",
   "build": "success",
   "deploy": "success",
   "result": "success"
