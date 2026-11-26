@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="440" viewBox="0 0 720 440" font-family="-apple-system,Segoe UI,Helvetica,Arial,sans-serif">
+  <defs><marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#5b6472"/></marker></defs>
+  <rect width="720" height="440" fill="#ffffff"/>
+  <text x="24" y="32" font-size="15" font-weight="600" fill="#2b3a67">colocate RL 一轮：训练与推理共享显存，靠 pause/resume 轮换</text>
+
+  <rect x="250" y="56" width="220" height="56" rx="10" fill="#e9f6ef" stroke="#4fa877"/>
+  <text x="360" y="82" text-anchor="middle" font-size="13.5" font-weight="600" fill="#1f5e3f">rollout 生成样本</text>
+  <text x="360" y="100" text-anchor="middle" font-size="11.5" fill="#3f6b53">推理引擎占用 权重 + KV cache</text>
+
+  <rect x="470" y="150" width="230" height="56" rx="10" fill="#fdf1e3" stroke="#d79a52"/>
+  <text x="585" y="176" text-anchor="middle" font-size="13.5" font-weight="600" fill="#8a5a1b">release / sleep</text>
+  <text x="585" y="194" text-anchor="middle" font-size="11.5" fill="#8a6a40">pause → cuMemUnmap/Release，显存让出</text>
+
+  <rect x="250" y="244" width="220" height="56" rx="10" fill="#eef2ff" stroke="#7083d6"/>
+  <text x="360" y="270" text-anchor="middle" font-size="13.5" font-weight="600" fill="#2b3a67">训练 fwd/bwd/optim</text>
+  <text x="360" y="288" text-anchor="middle" font-size="11.5" fill="#53607a">使用让出的显存</text>
+
+  <rect x="20" y="150" width="230" height="56" rx="10" fill="#f0eefc" stroke="#9179c9"/>
+  <text x="135" y="170" text-anchor="middle" font-size="13.5" font-weight="600" fill="#4b3a86">resume + update_weights</text>
+  <text x="135" y="188" text-anchor="middle" font-size="11.5" fill="#5f5192">cuMemCreate/Map 显存要回，写入新权重</text>
+
+  <path d="M470 90 C 560 100, 585 120, 585 148" fill="none" stroke="#5b6472" stroke-width="1.8" marker-end="url(#a)"/>
+  <path d="M520 206 C 500 230, 470 244, 470 258" fill="none" stroke="#5b6472" stroke-width="1.8" marker-end="url(#a)"/>
+  <path d="M250 272 C 170 268, 135 232, 135 208" fill="none" stroke="#5b6472" stroke-width="1.8" marker-end="url(#a)"/>
+  <path d="M135 150 C 135 116, 200 92, 248 86" fill="none" stroke="#5b6472" stroke-width="1.8" marker-end="url(#a)"/>
+
+  <text x="360" y="360" text-anchor="middle" font-size="12.5" fill="#53607a">地址稳定 → CUDA Graph 无需重新捕获；按 tag 分别处理 weights 与 kv_cache</text>
+  <text x="360" y="384" text-anchor="middle" font-size="11.5" fill="#99a1ad">sleep_level=1 仅放 KV cache；sleep_level=2 连权重一并释放</text>
+</svg>

@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="260" viewBox="0 0 760 260" font-family="-apple-system,Segoe UI,Helvetica,Arial,sans-serif">
+  <defs>
+    <marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#5b6472"/></marker>
+  </defs>
+  <rect width="760" height="260" fill="#ffffff"/>
+  <text x="24" y="34" font-size="15" font-weight="600" fill="#2b3a67">TMS 分配的状态机（ptr 全程不变，只有物理显存被释放 / 重建）</text>
+
+  <rect x="70"  y="92" width="230" height="76" rx="12" fill="#e9f6ef" stroke="#4fa877"/>
+  <text x="185" y="124" text-anchor="middle" font-size="17" font-weight="600" fill="#1f5e3f">ACTIVE</text>
+  <text x="185" y="148" text-anchor="middle" font-size="12" fill="#3f6b53">已映射到物理显存</text>
+
+  <rect x="460" y="92" width="230" height="76" rx="12" fill="#fdf1e3" stroke="#d79a52"/>
+  <text x="575" y="124" text-anchor="middle" font-size="17" font-weight="600" fill="#8a5a1b">PAUSED</text>
+  <text x="575" y="148" text-anchor="middle" font-size="12" fill="#8a6a40">虚拟地址保留，物理显存已释放</text>
+
+  <path d="M300 112 C 370 92, 400 92, 458 112" fill="none" stroke="#5b6472" stroke-width="1.8" marker-end="url(#a)"/>
+  <text x="380" y="78" text-anchor="middle" font-size="12.5" fill="#53607a">pause：cuMemUnmap + cuMemRelease（+可选 offload 到 CPU）</text>
+
+  <path d="M458 150 C 400 172, 370 172, 302 150" fill="none" stroke="#5b6472" stroke-width="1.8" marker-end="url(#a)"/>
+  <text x="380" y="200" text-anchor="middle" font-size="12.5" fill="#53607a">resume：cuMemCreate + cuMemMap + setAccess（+可选 onload）</text>
+
+  <text x="380" y="236" text-anchor="middle" font-size="11.5" fill="#99a1ad">非法状态转换（如重复 pause）会 fail-fast 直接 exit</text>
+</svg>

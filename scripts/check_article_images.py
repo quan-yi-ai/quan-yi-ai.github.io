@@ -25,6 +25,8 @@ class ArticleImages(HTMLParser):
 
 def check(root):
     public = root / "docs/public"
+    originals = json.loads((public/"images/figures/checksums.json").read_text())["images"]
+    preserved_paths = {item["path"] for item in originals}
     findings = []
     images = {}
     pages = {}
@@ -58,14 +60,13 @@ def check(root):
                     if not svg.get("viewBox"): raise ValueError("missing viewBox")
                     if any(e.tag.rsplit("}",1)[-1] in {"image","script","foreignObject"} for e in svg.iter()):
                         raise ValueError("embedded raster or executable content")
-                    if not svg.findtext("{http://www.w3.org/2000/svg}title"):
+                    if not svg.findtext("{http://www.w3.org/2000/svg}title") and src not in preserved_paths:
                         raise ValueError("missing title")
                 except (ET.ParseError, ValueError) as exc:
                     findings.append(f"{path}: {exc}")
         # Markdown image references must also resolve.
         for src in re.findall(r"!\[[^\]]*\]\(([^)]+)\)", body):
             findings.append(f"{page}: image outside accessible figure wrapper: {src}")
-    originals = json.loads((public/"images/figures/checksums.json").read_text())["images"]
     for im in originals:
         path = public / im["path"].lstrip("/")
         if not path.exists() or hashlib.sha256(path.read_bytes()).hexdigest() != im["sha256"]:

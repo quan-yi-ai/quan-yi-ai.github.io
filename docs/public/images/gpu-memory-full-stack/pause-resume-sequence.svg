@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="430" viewBox="0 0 760 430" font-family="-apple-system,Segoe UI,Helvetica,Arial,sans-serif">
+  <defs><marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#5b6472"/></marker></defs>
+  <rect width="760" height="430" fill="#ffffff"/>
+  <text x="24" y="32" font-size="15" font-weight="600" fill="#2b3a67">pause / resume 时序：ptr 不变，物理页被整体替换（H0 → H1）</text>
+
+  <rect x="40" y="52" width="680" height="48" rx="8" fill="#e9f6ef" stroke="#4fa877"/>
+  <text x="60" y="81" font-size="14" font-weight="600" fill="#1f5e3f">ACTIVE</text>
+  <text x="380" y="81" text-anchor="middle" font-size="13" fill="#3f6b53">ptr 已映射到物理页 H0</text>
+
+  <line x1="120" y1="100" x2="120" y2="140" stroke="#5b6472" stroke-width="1.8" marker-end="url(#a)"/>
+  <text x="134" y="126" font-size="13" fill="#53607a">pause(tag)</text>
+  <rect x="200" y="106" width="520" height="66" rx="8" fill="#fbfbfc" stroke="#cdd3db"/>
+  <text x="220" y="130" font-size="12.5" fill="#444c57">① （可选）offload：显存 → CPU (D2H)</text>
+  <text x="220" y="150" font-size="12.5" fill="#444c57">② cuMemUnmap(ptr)　　③ cuMemRelease(H0) —— 物理显存归还驱动</text>
+  <text x="220" y="166" font-size="11.5" fill="#99a1ad">nvidia-smi 此刻下降</text>
+
+  <rect x="40" y="186" width="680" height="48" rx="8" fill="#fdf1e3" stroke="#d79a52"/>
+  <text x="60" y="215" font-size="14" font-weight="600" fill="#8a5a1b">PAUSED</text>
+  <text x="380" y="215" text-anchor="middle" font-size="13" fill="#8a6a40">ptr 仍保留（虚拟地址未归还），物理显存已释放</text>
+
+  <line x1="120" y1="234" x2="120" y2="274" stroke="#5b6472" stroke-width="1.8" marker-end="url(#a)"/>
+  <text x="134" y="260" font-size="13" fill="#53607a">resume(tag)</text>
+  <rect x="200" y="240" width="520" height="66" rx="8" fill="#fbfbfc" stroke="#cdd3db"/>
+  <text x="220" y="264" font-size="12.5" fill="#444c57">① cuMemCreate() → 新物理页 H1　② cuMemMap(ptr, H1) 映射回同一 ptr</text>
+  <text x="220" y="284" font-size="12.5" fill="#444c57">③ cuMemSetAccess　④ （可选）onload：CPU → 显存 (H2D)</text>
+  <text x="220" y="300" font-size="11.5" fill="#99a1ad">无 backup 时内容未定义</text>
+
+  <rect x="40" y="320" width="680" height="48" rx="8" fill="#e9f6ef" stroke="#4fa877"/>
+  <text x="60" y="349" font-size="14" font-weight="600" fill="#1f5e3f">ACTIVE</text>
+  <text x="380" y="349" text-anchor="middle" font-size="13" fill="#3f6b53">ptr 不变，但背后已是全新物理页 H1</text>
+
+  <text x="40" y="398" font-size="12" fill="#53607a">对上层（tensor / CUDA Graph）透明：data_ptr() 自始至终不变，因此 graph 无需重新捕获。</text>
+</svg>

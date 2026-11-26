@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="820" height="300" viewBox="0 0 820 300" font-family="-apple-system,Segoe UI,Helvetica,Arial,sans-serif">
+  <defs><marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#5b6472"/></marker></defs>
+  <rect width="820" height="300" fill="#ffffff"/>
+  <text x="24" y="32" font-size="15" font-weight="600" fill="#2b3a67">两条路线殊途同归，底层都落到 CUDA VMM</text>
+
+  <rect x="24" y="56" width="560" height="92" rx="10" fill="#e9f6ef" stroke="#4fa877"/>
+  <text x="40" y="80" font-size="14" font-weight="600" fill="#1f5e3f">SGLang</text>
+  <text x="40" y="104" font-size="12.5" fill="#3f6b53">enable_memory_saver → 在 adapter.region(tag) 内分配 KV cache / 权重</text>
+  <text x="40" y="128" font-size="12.5" fill="#3f6b53">HTTP release_memory_occupation → adapter.pause(tag) → torch_memory_saver.pause</text>
+
+  <rect x="24" y="168" width="560" height="92" rx="10" fill="#f0eefc" stroke="#9179c9"/>
+  <text x="40" y="192" font-size="14" font-weight="600" fill="#4b3a86">vLLM</text>
+  <text x="40" y="216" font-size="12.5" fill="#5f5192">with use_memory_pool(tag) 分配权重 / kv_cache → pointer_to_data 记账</text>
+  <text x="40" y="240" font-size="12.5" fill="#5f5192">llm.sleep(level) → CuMemAllocator.sleep → _unmap_and_release</text>
+
+  <rect x="636" y="104" width="160" height="104" rx="10" fill="#edf0f2" stroke="#8a95a1"/>
+  <text x="716" y="150" text-anchor="middle" font-size="14" font-weight="600" fill="#3a434e">CUDA VMM</text>
+  <text x="716" y="172" text-anchor="middle" font-size="11.5" fill="#555f6b">cuMemUnmap</text>
+  <text x="716" y="190" text-anchor="middle" font-size="11.5" fill="#555f6b">cuMemRelease</text>
+
+  <path d="M584 118 C 610 118, 612 150, 634 150" fill="none" stroke="#5b6472" stroke-width="1.8" marker-end="url(#a)"/>
+  <path d="M584 226 C 610 226, 612 162, 634 162" fill="none" stroke="#5b6472" stroke-width="1.8" marker-end="url(#a)"/>
+</svg>

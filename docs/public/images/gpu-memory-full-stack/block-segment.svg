@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="300" viewBox="0 0 760 300" font-family="-apple-system,Segoe UI,Helvetica,Arial,sans-serif">
+  <defs>
+    <marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#5b6472"/></marker>
+  </defs>
+  <rect width="760" height="300" fill="#ffffff"/>
+  <text x="24" y="34" font-size="15" font-weight="600" fill="#2b3a67">对象层次：Tensor → Storage → Block</text>
+  <rect x="24"  y="54" width="150" height="48" rx="8" fill="#eef2ff" stroke="#7083d6"/>
+  <text x="99"  y="83" text-anchor="middle" font-size="14" fill="#2b3a67">Tensor</text>
+  <rect x="234" y="54" width="170" height="48" rx="8" fill="#eef2ff" stroke="#7083d6"/>
+  <text x="319" y="83" text-anchor="middle" font-size="14" fill="#2b3a67">Storage (DataPtr)</text>
+  <rect x="464" y="54" width="230" height="48" rx="8" fill="#eef2ff" stroke="#7083d6"/>
+  <text x="579" y="83" text-anchor="middle" font-size="13.5" fill="#2b3a67">Block (ptr / size / stream)</text>
+  <line x1="174" y1="78" x2="232" y2="78" stroke="#5b6472" stroke-width="1.6" marker-end="url(#a)"/>
+  <line x1="404" y1="78" x2="462" y2="78" stroke="#5b6472" stroke-width="1.6" marker-end="url(#a)"/>
+  <text x="24" y="150" font-size="15" font-weight="600" fill="#8a5a1b">Segment（一次 cudaMalloc 拿到的大块，按 size 落入 small / large pool）</text>
+  <rect x="24"  y="168" width="160" height="56" fill="#fdf1e3" stroke="#d79a52"/>
+  <text x="104" y="201" text-anchor="middle" font-size="13" fill="#8a5a1b">Block</text>
+  <rect x="184" y="168" width="160" height="56" fill="#fdf1e3" stroke="#d79a52"/>
+  <text x="264" y="201" text-anchor="middle" font-size="13" fill="#8a5a1b">Block</text>
+  <rect x="344" y="168" width="180" height="56" fill="#f4f6f8" stroke="#aab3bf"/>
+  <text x="434" y="201" text-anchor="middle" font-size="13" fill="#6b7686">free Block</text>
+  <rect x="524" y="168" width="170" height="56" fill="#f4f6f8" stroke="#aab3bf"/>
+  <text x="609" y="201" text-anchor="middle" font-size="13" fill="#6b7686">free Block</text>
+  <text x="104" y="252" text-anchor="middle" font-size="12" fill="#53607a">◀ split 切分出相邻 Block</text>
+  <text x="565" y="252" text-anchor="middle" font-size="12" fill="#53607a">相邻 free block 合并 (merge) ▶</text>
+  <text x="24" y="284" font-size="12" fill="#53607a">分配时优先复用 free block；完全空闲的 segment 才会被 empty_cache 整段 cudaFree 归还驱动。</text>
+</svg>

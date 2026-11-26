@@ -4,6 +4,7 @@
 
 ## 全部文章
 
+- **[GPU 显存管理全栈导读：从 PyTorch 到推理框架与 RL 训练](/posts/gpu-memory-full-stack)** — PyTorch 分配器、TMS、SGLang/vLLM 与 slime/verl 的显存管理调用链。
 - **[SGLang 服务启动日志详解：从权重加载到 CUDA Graph 与 KV Cache](/posts/sglang-startup-log-analysis)** — 基于一次真实单卡启动记录，拆解权重、KV Pool、Graph 与离线加载排障。
 - **[多模态文生图性能基准：如何测量 AR、DiT 与 VAE？](/posts/multimodal-generation-benchmark)** — 分阶段 Profiler、负载 Sweep、端到端延迟与可复现 A/B 测试。
 - **[RL-Kernel：MoE Router 的训推数值一致性如何验证？](/posts/rlkernel-moe-router-consistency)** — 确定性、Batch 不变性、CPU Oracle 与跨引擎首差分定位。
